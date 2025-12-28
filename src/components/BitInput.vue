@@ -2,7 +2,7 @@
   <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
     <div class="flex items-center justify-between gap-3">
       <p class="text-sm font-semibold text-slate-600">{{ label }}</p>
-      <span class="text-xs text-slate-400">Click bits to toggle</span>
+      <span class="text-xs text-slate-400">点击比特切换</span>
     </div>
     <div class="mt-3 flex flex-wrap gap-2">
       <button
@@ -17,7 +17,7 @@
       <button
         class="bit-chip border-dashed text-slate-500 hover:border-slate-400"
         @click="addBit(0)"
-        title="Add bit"
+        title="新增比特"
       >
         +
       </button>
@@ -25,11 +25,11 @@
         class="bit-chip border-dashed text-slate-500 hover:border-rose-400"
         @click="removeBit"
         :disabled="bits.length === 0"
-        title="Remove bit"
+        title="删除比特"
       >
         -
       </button>
-      <span v-if="bits.length === 0" class="text-xs text-slate-400">Add bits to begin.</span>
+      <span v-if="bits.length === 0" class="text-xs text-slate-400">请先添加比特。</span>
     </div>
   </div>
 </template>
@@ -43,7 +43,7 @@ const props = withDefaults(
     modelValue: string;
     label?: string;
   }>(),
-  { label: "Input bits" }
+  { label: "输入比特" }
 );
 
 const emit = defineEmits<{ (event: "update:modelValue", value: string): void }>();

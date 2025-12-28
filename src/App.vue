@@ -2,13 +2,12 @@
   <div class="min-h-screen px-4 py-8 md:px-10">
     <header class="mx-auto w-full md:w-2/3 max-w-none">
       <div class="flex flex-col gap-4 rounded-3xl border border-base-200 bg-white/80 p-6 shadow-lg backdrop-blur">
-        <p class="text-sm uppercase tracking-[0.3em] text-emerald-500">FEC Studio</p>
+        <p class="text-sm uppercase tracking-[0.3em] text-emerald-500">FEC 实验室</p>
         <h1 class="text-3xl font-bold text-slate-900 md:text-4xl">
-          Forward Error Correction Playground
+          前向纠错交互演示
         </h1>
         <p class="max-w-3xl text-slate-600">
-          Explore encoding and decoding with interactive bit flips. Each tab offers a focused
-          demonstration you can tweak step by step.
+          通过翻转比特交互式理解编码与解码过程，每个标签页都可以逐步调整与观察。
         </p>
       </div>
     </header>
@@ -20,21 +19,21 @@
           :class="{ 'tab-active': activeTab === 'repetition' }"
           @click="activeTab = 'repetition'"
         >
-          Repetition
+          重复码
         </button>
         <button
           class="tab"
           :class="{ 'tab-active': activeTab === 'parity' }"
           @click="activeTab = 'parity'"
         >
-          Parity
+          奇偶校验
         </button>
         <button
           class="tab"
           :class="{ 'tab-active': activeTab === 'hamming' }"
           @click="activeTab = 'hamming'"
         >
-          Hamming (7,4)
+          汉明码 (7,4)
         </button>
         <button
           class="tab"
@@ -48,7 +47,7 @@
           :class="{ 'tab-active': activeTab === 'conv' }"
           @click="activeTab = 'conv'"
         >
-          Convolutional
+          卷积码
         </button>
       </div>
 

@@ -10,7 +10,7 @@
           v-if="showIndex"
           type="button"
           class="leading-none"
-          :title="indexFormatState === 'binary' ? 'Binary index' : 'Decimal index'"
+          :title="indexFormatState === 'binary' ? '二进制索引' : '十进制索引'"
           @click.stop="toggleIndexFormat"
         >
           <span
@@ -40,7 +40,7 @@
           {{ bit.label }}
         </span>
       </div>
-      <span v-if="bits.length === 0" class="text-xs text-slate-400">No bits.</span>
+      <span v-if="bits.length === 0" class="text-xs text-slate-400">暂无比特。</span>
     </div>
   </div>
 </template>

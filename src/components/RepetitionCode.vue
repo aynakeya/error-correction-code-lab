@@ -3,11 +3,11 @@
     <div class="card-body gap-6">
       <div class="flex flex-col gap-4 md:flex-row md:items-end">
         <div class="w-full md:w-2/3">
-          <BitInput v-model="repInput" label="Input bits" />
+          <BitInput v-model="repInput" label="输入比特" />
         </div>
         <label class="form-control w-full md:w-1/3">
           <div class="label">
-            <span class="label-text">Repeat count (odd)</span>
+            <span class="label-text">重复次数（奇数）</span>
           </div>
           <input v-model.number="repFactor" type="number" min="1" step="2" class="input input-bordered" />
         </label>
@@ -16,9 +16,9 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
         <div class="relative">
           <BitDisplay
-            title="Encoded"
+            title="发送端编码"
             :bits="repEncodedInfo"
-            description="Each bit is repeated n times."
+            description="每个比特重复 n 次。"
             show-index
             :index-offset="1"
             read-only
@@ -30,9 +30,9 @@
 
         <div class="relative">
           <BitDisplay
-            title="Received"
+            title="接收端"
             :bits="repReceivedInfo"
-            description="Click any bit to flip."
+            description="点击任意比特翻转。"
             :highlight-indices="repErrorIndices"
             show-index
             :index-offset="1"
@@ -44,15 +44,15 @@
         </div>
 
         <div class="rounded-2xl border border-base-200 bg-base-100 p-4 flex flex-col gap-4">
-          <p class="text-sm font-semibold text-slate-600">Majority decode</p>
-          <BitDisplay title="Decoded" :bits="repDecodedInfo" read-only />
+          <p class="text-sm font-semibold text-slate-600">多数表决解码</p>
+          <BitDisplay title="解码结果" :bits="repDecodedInfo" read-only />
           <div class="text-xs text-slate-500">
-            Flipped bits: <span class="font-semibold text-slate-700">{{ repErrorIndices.length }}</span>
+            翻转比特数：<span class="font-semibold text-slate-700">{{ repErrorIndices.length }}</span>
           </div>
           <div class="text-xs text-slate-500">
-            Status:
+            状态：
             <span :class="repIsCorrect ? 'text-emerald-600' : 'text-rose-600'" class="font-semibold">
-              {{ repIsCorrect ? "Recovered" : "Mismatch" }}
+              {{ repIsCorrect ? "解码正确" : "解码错误" }}
             </span>
           </div>
         </div>

@@ -3,27 +3,27 @@
     <div class="card-body gap-6">
       <div class="flex flex-col gap-4 md:flex-row md:items-end">
         <div class="w-full md:w-2/3">
-          <BitInput v-model="parityInput" label="Input bits" />
+          <BitInput v-model="parityInput" label="输入比特" />
         </div>
         <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
-          <p class="text-sm font-semibold text-slate-600">Parity rule</p>
-          <p class="text-xs text-slate-500">Even parity bit appended to the end.</p>
+          <p class="text-sm font-semibold text-slate-600">奇偶校验规则</p>
+          <p class="text-xs text-slate-500">偶校验位追加到末尾。</p>
         </div>
       </div>
 
       <BitDisplay
-        title="Parity calculation"
+        title="奇偶校验计算"
         :bits="parityCalcInfo"
-        description="Data bits + calculated parity bit"
+        description="数据位 + 计算出的校验位"
         read-only
       />
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
         <div class="relative">
           <BitDisplay
-            title="Encoded"
+            title="发送端编码"
             :bits="parityEncodedInfo"
-            description="Data + parity bit"
+            description="数据位 + 校验位"
             show-index
             :index-offset="1"
             read-only
@@ -32,9 +32,9 @@
 
         <div class="relative">
           <BitDisplay
-            title="Received"
+            title="接收端"
             :bits="parityReceivedInfo"
-            description="Click any bit to flip."
+            description="点击任意比特翻转。"
             :highlight-indices="parityErrorIndices"
             show-index
             :index-offset="1"
@@ -43,18 +43,18 @@
         </div>
 
         <div class="rounded-2xl border border-base-200 bg-base-100 p-4 flex flex-col gap-4">
-          <p class="text-sm font-semibold text-slate-600">Parity check</p>
+          <p class="text-sm font-semibold text-slate-600">奇偶校验结果</p>
           <div class="text-sm text-slate-600">
-            Ones count: <span class="font-semibold">{{ parityReceivedOnes }}</span>
+            1 的数量：<span class="font-semibold">{{ parityReceivedOnes }}</span>
           </div>
           <div class="text-sm">
-            Status:
+            状态：
             <span class="font-semibold" :class="parityOk ? 'text-emerald-600' : 'text-rose-600'">
-              {{ parityOk ? "Parity OK (no error detected)" : "Parity FAIL (error detected)" }}
+              {{ parityOk ? "通过（未检测到错误）" : "失败（检测到错误）" }}
             </span>
           </div>
           <div v-if="parityErrorIndices.length && parityOk" class="text-xs text-amber-600">
-            Even number of errors slipped through parity check.
+            偶数个位翻转未被奇偶校验检测到。
           </div>
         </div>
       </div>

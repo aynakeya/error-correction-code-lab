@@ -1,7 +1,7 @@
 <template>
   <div class="w-full bg-base-100 rounded-lg border border-base-200 p-4 shadow-sm overflow-x-auto relative">
     <h3 class="text-slate-600 text-sm font-bold mb-2 uppercase tracking-wider sticky left-0">
-      Viterbi Trellis Decoder
+      维特比网格译码
     </h3>
     <svg :width="width" :height="height">
       <g v-for="(layer, stepIndex) in layers.slice(0, layers.length - 1)" :key="`step-${stepIndex}`">
