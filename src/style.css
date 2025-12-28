@@ -1,0 +1,19 @@
+@import "tailwindcss";
+@plugin "daisyui";
+@layer base {
+  html {
+    font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .bit-chip {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl border border-base-300 text-lg font-semibold transition cursor-pointer select-none pointer-events-auto;
+  }
+  .bit-chip-active {
+    @apply bg-lime-300 text-lime-950 shadow-sm;
+  }
+  .bit-chip-error {
+    @apply bg-rose-300 text-rose-950;
+  }
+}
