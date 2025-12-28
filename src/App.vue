@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen px-4 py-8 md:px-10">
-    <header class="mx-auto w-full md:w-2/3 max-w-none">
+    <header class="mx-auto w-full md:w-3/4 max-w-none">
       <div class="flex flex-col gap-4 rounded-3xl border border-base-200 bg-white/80 p-6 shadow-lg backdrop-blur">
         <p class="text-sm uppercase tracking-[0.3em] text-emerald-500">FEC 实验室</p>
         <h1 class="text-3xl font-bold text-slate-900 md:text-4xl">
@@ -12,7 +12,7 @@
       </div>
     </header>
 
-    <main class="mx-auto mt-8 w-full md:w-2/3 max-w-none">
+    <main class="mx-auto mt-8 w-full md:w-3/4 max-w-none">
       <div class="tabs tabs-lifted">
         <button
           class="tab"
