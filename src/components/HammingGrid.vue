@@ -4,7 +4,10 @@
       <p class="text-sm font-semibold text-slate-600">{{ title }}</p>
       <span v-if="description" class="text-xs text-slate-400">{{ description }}</span>
     </div>
-    <div class="mt-4 grid grid-cols-4 gap-3">
+    <div
+      class="mt-4 grid gap-3"
+      :style="{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }"
+    >
       <div
         v-for="(pos, gridIndex) in gridPositions"
         :key="`cell-${gridIndex}`"
@@ -13,7 +16,7 @@
         @mouseleave="setHover(-1)"
       >
         <button
-          v-if="pos > 0"
+          v-if="showIndexBadge(pos)"
           type="button"
           class="leading-none"
           :title="indexFormatState === 'binary' ? '二进制索引' : '十进制索引'"
@@ -36,9 +39,9 @@
           aria-hidden="true"
         ></div>
         <button
-          v-if="pos > 0"
+          v-if="showBitCell(pos)"
           type="button"
-          class="relative flex h-14 w-14 flex-col items-center justify-center rounded-xl border text-lg font-semibold transition"
+          class="bit-chip"
           :class="cellClass(pos)"
           @click="emitFlip(pos)"
         >
@@ -59,13 +62,14 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-type Mode = "hamming" | "secded";
-
 const props = withDefaults(
   defineProps<{
     title: string;
     description?: string;
-    mode: Mode;
+    positions: number[];
+    labels: Record<number, string>;
+    parityPositions: number[];
+    overallPosition?: number;
     bits: number[];
     compareBits?: number[];
     onFlip?: (position: number) => void;
@@ -76,31 +80,33 @@ const props = withDefaults(
 const indexFormatState = ref<"binary" | "decimal">("binary");
 const hoveredPosition = ref<number>(-1);
 
-const labelMap: Record<number, string> = {
-  1: "P1",
-  2: "P2",
-  3: "D1",
-  4: "P4",
-  5: "D2",
-  6: "D3",
-  7: "D4",
-  8: "P8",
-};
+const isOverallPosition = (pos: number) =>
+  typeof props.overallPosition === "number" && pos === props.overallPosition;
 
-const gridPositions = computed(() => {
-  if (props.mode === "secded") {
-    return [8, 1, 2, 3, 4, 5, 6, 7];
-  }
-  return [0, 1, 2, 3, 4, 5, 6, 7];
+const isEmptyPosition = (pos: number) => pos <= 0 && !isOverallPosition(pos);
+
+const gridPositions = computed(() => props.positions);
+
+const columnCount = computed(() => {
+  const length = gridPositions.value.length;
+  if (length <= 8) return 4;
+  const count = Math.ceil(Math.sqrt(length));
+  return Math.max(3, count);
+});
+
+const indexWidth = computed(() => {
+  const maxPosition = Math.max(
+    ...gridPositions.value.filter((pos) => pos > 0),
+    1
+  );
+  return Math.max(1, Math.ceil(Math.log2(maxPosition + 1)));
 });
 
 const formatIndex = (pos: number) => {
-  if (pos <= 0) return "";
-  if (props.mode === "secded" && pos === 8) {
-    return indexFormatState.value === "binary" ? "000" : "0";
-  }
-  const bin = pos.toString(2).padStart(3, "0");
-  return indexFormatState.value === "binary" ? bin : `${pos}`;
+  if (isEmptyPosition(pos)) return "";
+  const dec = isOverallPosition(pos) ? 0 : pos;
+  const bin = dec.toString(2).padStart(indexWidth.value, "0");
+  return indexFormatState.value === "binary" ? bin : `${dec}`;
 };
 
 const toggleIndexFormat = () => {
@@ -108,33 +114,31 @@ const toggleIndexFormat = () => {
     indexFormatState.value === "binary" ? "decimal" : "binary";
 };
 
-const labelForPosition = (pos: number) => labelMap[pos] || "";
+const labelForPosition = (pos: number) => props.labels[pos] || "";
 
 const bitValue = (pos: number) => {
-  if (pos <= 0) return "";
-  if (props.mode === "secded" && pos === 8) {
-    return props.bits[7] ?? 0;
+  if (isEmptyPosition(pos)) return "";
+  if (isOverallPosition(pos)) {
+    return props.bits[props.bits.length - 1] ?? 0;
   }
   return props.bits[pos - 1] ?? 0;
 };
 
 const compareValue = (pos: number) => {
-  if (!props.compareBits || pos <= 0) return null;
-  if (props.mode === "secded" && pos === 8) {
-    return props.compareBits[7] ?? 0;
+  if (!props.compareBits) return null;
+  if (isEmptyPosition(pos)) return null;
+  if (isOverallPosition(pos)) {
+    return props.compareBits[props.compareBits.length - 1] ?? 0;
   }
   return props.compareBits[pos - 1] ?? 0;
 };
 
-const parityPositions = computed(() => {
-  const base = [1, 2, 4];
-  return props.mode === "secded" ? [...base, 8] : base;
-});
+const parityPositions = computed(() => props.parityPositions);
 
 const errorPositions = computed(() => {
   if (!props.compareBits) return [];
   return gridPositions.value.filter((pos) => {
-    if (pos <= 0) return false;
+    if (isEmptyPosition(pos)) return false;
     const current = bitValue(pos);
     const compare = compareValue(pos);
     if (compare === null) return false;
@@ -144,33 +148,43 @@ const errorPositions = computed(() => {
 
 const highlightPositions = computed(() => {
   const pos = hoveredPosition.value;
-  if (pos <= 0) return [];
+  if (pos <= 0 && !isOverallPosition(pos)) return [];
   const positions: number[] = [pos];
-  if (props.mode === "secded" && pos === 8) {
-    return [1, 2, 3, 4, 5, 6, 7, 8];
+  if (isOverallPosition(pos)) {
+    return gridPositions.value.filter((position) => !isEmptyPosition(position));
   }
   if (parityPositions.value.includes(pos)) {
-    for (let i = 1; i <= 7; i += 1) {
+    const maxPosition = Math.max(
+      ...gridPositions.value.filter((position) => position > 0),
+      1
+    );
+    for (let i = 1; i <= maxPosition; i += 1) {
       if (i & pos) positions.push(i);
     }
   } else {
     parityPositions.value.forEach((p) => {
-      if (p !== 8 && (p & pos)) positions.push(p);
+      if (p & pos) positions.push(p);
     });
-    if (props.mode === "secded") positions.push(8);
+    if (typeof props.overallPosition === "number") {
+      positions.push(props.overallPosition);
+    }
   }
   return Array.from(new Set(positions));
 });
 
+const showIndexBadge = (pos: number) => !isEmptyPosition(pos);
+const showBitCell = (pos: number) => !isEmptyPosition(pos);
+
 const cellClass = (pos: number) => {
   const classes = ["border-base-300"];
   const isHighlighted = highlightPositions.value.includes(pos);
-  const isParity = parityPositions.value.includes(pos);
+  const isParity = parityPositions.value.includes(pos) || isOverallPosition(pos);
   const isError = errorPositions.value.includes(pos);
   if (isError) {
     classes.push("bg-rose-200", "text-rose-950", "border-rose-300");
   } else {
-    classes.push("bg-white");
+    const value = bitValue(pos);
+    if (value === 1) classes.push("bit-chip-active");
   }
   if (isHighlighted) {
     classes.push("ring-2", "ring-sky-300");
@@ -182,8 +196,8 @@ const cellClass = (pos: number) => {
     }
   }
   if (
-    hoveredPosition.value > 0 &&
-    pos > 0 &&
+    hoveredPosition.value !== -1 &&
+    !isEmptyPosition(pos) &&
     !isHighlighted &&
     !isError
   ) {
@@ -198,6 +212,6 @@ const emitFlip = (pos: number) => {
 };
 
 const setHover = (pos: number) => {
-  hoveredPosition.value = pos;
+  hoveredPosition.value = isEmptyPosition(pos) ? -1 : pos;
 };
 </script>

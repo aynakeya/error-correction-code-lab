@@ -3,12 +3,26 @@
     <div class="card-body gap-6">
       <div class="flex flex-col gap-4 md:flex-row md:items-end">
         <div class="w-full md:w-2/3">
-          <BitInput v-model="hammingInput" label="输入比特（每 4 位一组）" />
+          <BitInput
+            v-model="hammingInput"
+            :label="`输入比特（每 ${normalizedBlockSize} 位一组）`"
+          />
         </div>
         <div class="flex w-full flex-col gap-3 md:w-1/3">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
             <p class="text-sm font-semibold text-slate-600">布局说明</p>
-            <p class="text-xs text-slate-500">位置 1、2、4 为校验位（偶校验）。</p>
+            <p class="text-xs text-slate-500">校验位位置：{{ parityPositionsText }}（偶校验）。</p>
+            <div class="mt-3 flex items-center gap-2 text-xs text-slate-500">
+              <span>每组信息位数</span>
+              <input
+                v-model.number="dataBitsPerBlock"
+                type="number"
+                min="1"
+                max="32"
+                class="input input-bordered input-xs w-16"
+              />
+              <span>码长 {{ hammingLayout.totalLength }}</span>
+            </div>
           </div>
           <div
             v-if="hammingEncodedBlocks.length > 1"
@@ -38,55 +52,32 @@
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 text-sm text-slate-600 leading-6">
             <p class="font-semibold text-slate-700">校验位计算</p>
             <div class="mt-3 flex flex-col gap-3 text-sm text-slate-600">
-              <div class="flex flex-col gap-2 rounded border border-base-200 bg-white/70 px-3 py-2">
+              <div
+                v-for="row in parityCalcRows"
+                :key="`parity-${row.position}`"
+                class="flex flex-col gap-2 rounded border border-base-200 bg-white/70 px-3 py-2"
+              >
                 <div class="flex flex-wrap items-center gap-2">
                   <BitDisplay
-                    :bits="parityP1Output"
+                    :bits="row.output"
                     show-index
-                    :index-values="[1]"
+                    :index-values="[row.position]"
                     hide-title
+                    title=""
                     read-only
                   />
                   <span class="text-slate-500">=</span>
-                  <BitDisplay :bits="dBits.d1" show-index :index-values="[3]" hide-title read-only />
-                  <span class="text-slate-500">⊕</span>
-                  <BitDisplay :bits="dBits.d2" show-index :index-values="[5]" hide-title read-only />
-                  <span class="text-slate-500">⊕</span>
-                  <BitDisplay :bits="dBits.d4" show-index :index-values="[7]" hide-title read-only />
-                </div>
-              </div>
-              <div class="flex flex-col gap-2 rounded border border-base-200 bg-white/70 px-3 py-2">
-                <div class="flex flex-wrap items-center gap-2">
-                  <BitDisplay
-                    :bits="parityP2Output"
-                    show-index
-                    :index-values="[2]"
-                    hide-title
-                    read-only
-                  />
-                  <span class="text-slate-500">=</span>
-                  <BitDisplay :bits="dBits.d1" show-index :index-values="[3]" hide-title read-only />
-                  <span class="text-slate-500">⊕</span>
-                  <BitDisplay :bits="dBits.d3" show-index :index-values="[6]" hide-title read-only />
-                  <span class="text-slate-500">⊕</span>
-                  <BitDisplay :bits="dBits.d4" show-index :index-values="[7]" hide-title read-only />
-                </div>
-              </div>
-              <div class="flex flex-col gap-2 rounded border border-base-200 bg-white/70 px-3 py-2">
-                <div class="flex flex-wrap items-center gap-2">
-                  <BitDisplay
-                    :bits="parityP4Output"
-                    show-index
-                    :index-values="[4]"
-                    hide-title
-                    read-only
-                  />
-                  <span class="text-slate-500">=</span>
-                  <BitDisplay :bits="dBits.d2" show-index :index-values="[5]" hide-title read-only />
-                  <span class="text-slate-500">⊕</span>
-                  <BitDisplay :bits="dBits.d3" show-index :index-values="[6]" hide-title read-only />
-                  <span class="text-slate-500">⊕</span>
-                  <BitDisplay :bits="dBits.d4" show-index :index-values="[7]" hide-title read-only />
+                  <template v-for="(input, idx) in row.inputs" :key="`parity-${row.position}-input-${idx}`">
+                    <BitDisplay
+                      :bits="[input]"
+                      show-index
+                      :index-values="[row.inputPositions[idx]]"
+                      hide-title
+                      title=""
+                      read-only
+                    />
+                    <span v-if="idx < row.inputs.length - 1" class="text-slate-500">⊕</span>
+                  </template>
                 </div>
               </div>
             </div>
@@ -95,8 +86,10 @@
 
           <HammingGrid
             title="发送端编码"
-            description="7 位码字"
-            mode="hamming"
+            :description="`${hammingLayout.totalLength} 位码字`"
+            :positions="gridPositions"
+            :labels="positionLabels"
+            :parity-positions="hammingLayout.parityPositions"
             :bits="currentEncodedBlock"
           />
         </div>
@@ -106,7 +99,9 @@
           <HammingGrid
             title="接收端"
             description="点击比特翻转，悬停查看覆盖关系。"
-            mode="hamming"
+            :positions="gridPositions"
+            :labels="positionLabels"
+            :parity-positions="hammingLayout.parityPositions"
             :bits="currentReceivedBlock"
             :compare-bits="currentEncodedBlock"
             :on-flip="(position) => toggleHammingPosition(selectedBlock, position)"
@@ -117,45 +112,43 @@
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 text-sm text-slate-600">
             <p class="text-sm font-semibold text-slate-600">伴随式计算</p>
             <div class="mt-3 flex flex-col gap-3">
-              <div class="flex flex-wrap items-center gap-2 rounded border border-base-200 bg-white/70 px-3 py-2">
-                <BitDisplay :bits="s1Output" hide-title show-index :index-values="[1]" read-only />
+              <div
+                v-for="row in syndromeRows"
+                :key="`syndrome-${row.position}`"
+                class="flex flex-wrap items-center gap-2 rounded border border-base-200 bg-white/70 px-3 py-2"
+              >
+                <BitDisplay :bits="row.output" hide-title show-index :index-values="[row.position]" title="" read-only />
                 <span class="text-slate-500">=</span>
-                <BitDisplay :bits="s1Inputs" hide-title show-index :index-values="[1, 3, 5, 7]" read-only />
-              </div>
-              <div class="flex flex-wrap items-center gap-2 rounded border border-base-200 bg-white/70 px-3 py-2">
-                <BitDisplay :bits="s2Output" hide-title show-index :index-values="[2]" read-only />
-                <span class="text-slate-500">=</span>
-                <BitDisplay :bits="s2Inputs" hide-title show-index :index-values="[2, 3, 6, 7]" read-only />
-              </div>
-              <div class="flex flex-wrap items-center gap-2 rounded border border-base-200 bg-white/70 px-3 py-2">
-                <BitDisplay :bits="s3Output" hide-title show-index :index-values="[4]" read-only />
-                <span class="text-slate-500">=</span>
-                <BitDisplay :bits="s3Inputs" hide-title show-index :index-values="[4, 5, 6, 7]" read-only />
+                <template v-for="(input, idx) in row.inputs" :key="`syndrome-${row.position}-input-${idx}`">
+                  <BitDisplay
+                    :bits="[input]"
+                    hide-title
+                    show-index
+                    :index-values="[row.inputPositions[idx]]"
+                    title=""
+                    read-only
+                  />
+                  <span v-if="idx < row.inputs.length - 1" class="text-slate-500">⊕</span>
+                </template>
               </div>
             </div>
           </div>
 
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
             <p class="text-sm font-semibold text-slate-600">解码与伴随式</p>
-            <div class="mt-3 grid gap-3 sm:grid-cols-3 text-center text-xs text-slate-500">
-              <div class="rounded border border-base-200 bg-white/70 p-3">
-                <div>S1 (1,3,5,7)</div>
-                <div class="text-lg font-semibold text-slate-700">{{ hammingAnalysis.s1 }}</div>
-              </div>
-              <div class="rounded border border-base-200 bg-white/70 p-3">
-                <div>S2 (2,3,6,7)</div>
-                <div class="text-lg font-semibold text-slate-700">{{ hammingAnalysis.s2 }}</div>
-              </div>
-              <div class="rounded border border-base-200 bg-white/70 p-3">
-                <div>S4 (4,5,6,7)</div>
-                <div class="text-lg font-semibold text-slate-700">{{ hammingAnalysis.s4 }}</div>
+            <div class="mt-3 grid gap-3 text-center text-xs text-slate-500 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                v-for="row in syndromeSummary"
+                :key="`summary-${row.position}`"
+                class="rounded border border-base-200 bg-white/70 p-3"
+              >
+                <div>S{{ row.position }} ({{ row.coverPositions.join(",") }})</div>
+                <div class="text-lg font-semibold text-slate-700">{{ row.value }}</div>
               </div>
             </div>
             <div class="mt-4 text-sm text-slate-600">
-              错误位置 (S4 S2 S1)₂:
-              <span class="font-mono text-slate-800">
-                {{ hammingAnalysis.s4 }}{{ hammingAnalysis.s2 }}{{ hammingAnalysis.s1 }}
-              </span>
+              错误位置 ({{ syndromeLabel }})₂:
+              <span class="font-mono text-slate-800">{{ syndromeBinary }}</span>
               十进制 = <span class="font-semibold text-slate-800">{{ hammingAnalysis.syndrome }}</span>
             </div>
             <div
@@ -198,16 +191,24 @@ import BitInput from "./BitInput.vue";
 import BitDisplay, { BitItem } from "./BitDisplay.vue";
 import HammingGrid from "./HammingGrid.vue";
 import { padBits, toBits } from "../utils/bits";
-import { hammingDecode, hammingEncode } from "../utils/hamming";
+import { buildHammingLayout, hammingDecode, hammingEncode } from "../utils/hamming";
 
 const hammingInput = ref("1011");
+const dataBitsPerBlock = ref(4);
+
+const normalizedBlockSize = computed(() => {
+  const value = Number.isFinite(dataBitsPerBlock.value) ? dataBitsPerBlock.value : 4;
+  return Math.min(32, Math.max(1, Math.floor(value)));
+});
+
+const hammingLayout = computed(() => buildHammingLayout(normalizedBlockSize.value));
 
 const hammingBlocks = computed(() => {
   const bits = toBits(hammingInput.value);
-  const padded = padBits(bits, 4);
+  const padded = padBits(bits, normalizedBlockSize.value);
   const blocks: number[][] = [];
-  for (let i = 0; i < padded.bits.length; i += 4) {
-    blocks.push(padded.bits.slice(i, i + 4));
+  for (let i = 0; i < padded.bits.length; i += normalizedBlockSize.value) {
+    blocks.push(padded.bits.slice(i, i + normalizedBlockSize.value));
   }
   return blocks;
 });
@@ -228,7 +229,7 @@ watch(
 );
 
 const toggleHammingBit = (blockIndex: number, bitIndex: number) => {
-  const flatIndex = blockIndex * 7 + bitIndex;
+  const flatIndex = blockIndex * hammingLayout.value.totalLength + bitIndex;
   if (flatIndex < 0 || flatIndex >= hammingReceived.value.length) return;
   hammingReceived.value[flatIndex] = hammingReceived.value[flatIndex] ? 0 : 1;
 };
@@ -240,8 +241,8 @@ const toggleHammingPosition = (blockIndex: number, position: number) => {
 
 const hammingReceivedBlocks = computed(() => {
   const blocks: number[][] = [];
-  for (let i = 0; i < hammingReceived.value.length; i += 7) {
-    blocks.push(hammingReceived.value.slice(i, i + 7));
+  for (let i = 0; i < hammingReceived.value.length; i += hammingLayout.value.totalLength) {
+    blocks.push(hammingReceived.value.slice(i, i + hammingLayout.value.totalLength));
   }
   return blocks;
 });
@@ -252,46 +253,58 @@ const hammingDecoded = computed(() =>
 
 const hammingDecodedStream = computed(() => hammingDecoded.value.flatMap((result) => result.dataBits));
 
-const hammingLabels: string[] = ["P1", "P2", "D1", "P4", "D2", "D3", "D4"];
-
 const currentEncodedBlock = computed(() => hammingEncodedBlocks.value[selectedBlock.value] || []);
 const currentReceivedBlock = computed(() => hammingReceivedBlocks.value[selectedBlock.value] || []);
-const currentDataBlock = computed(() => hammingBlocks.value[selectedBlock.value] || [0, 0, 0, 0]);
+const currentDataBlock = computed(
+  () => hammingBlocks.value[selectedBlock.value] || Array(normalizedBlockSize.value).fill(0)
+);
 
-const parityFormulas = computed(() => {
-  const [d1, d2, d3, d4] = [...currentDataBlock.value, 0, 0, 0, 0].slice(0, 4);
-  const p1 = d1 ^ d2 ^ d4;
-  const p2 = d1 ^ d3 ^ d4;
-  const p4 = d2 ^ d3 ^ d4;
-  return {
-    p1,
-    p2,
-    p4,
-    p1Expr: `${d1} ⊕ ${d2} ⊕ ${d4}`,
-    p2Expr: `${d1} ⊕ ${d3} ⊕ ${d4}`,
-    p4Expr: `${d2} ⊕ ${d3} ⊕ ${d4}`,
-  };
+const positionLabels = computed(() => {
+  const labels: Record<number, string> = {};
+  hammingLayout.value.parityPositions.forEach((position) => {
+    labels[position] = `P${position}`;
+  });
+  hammingLayout.value.dataPositions.forEach((position, index) => {
+    labels[position] = `D${index + 1}`;
+  });
+  return labels;
 });
 
-const parityP1Output = computed<BitItem[]>(() => [
-  { value: parityFormulas.value.p1, role: "parity", label: "P1" },
-]);
-const parityP2Output = computed<BitItem[]>(() => [
-  { value: parityFormulas.value.p2, role: "parity", label: "P2" },
-]);
-const parityP4Output = computed<BitItem[]>(() => [
-  { value: parityFormulas.value.p4, role: "parity", label: "P4" },
+const gridPositions = computed(() => [
+  0,
+  ...Array.from({ length: hammingLayout.value.totalLength }, (_, index) => index + 1),
 ]);
 
-const dBits = computed(() => {
-  const [d1, d2, d3, d4] = [...currentDataBlock.value, 0, 0, 0, 0].slice(0, 4);
-  return {
-    d1: [{ value: d1, role: "data", label: "D1" }],
-    d2: [{ value: d2, role: "data", label: "D2" }],
-    d3: [{ value: d3, role: "data", label: "D3" }],
-    d4: [{ value: d4, role: "data", label: "D4" }],
-  };
+const dataIndexByPosition = computed(() => {
+  const map = new Map<number, number>();
+  hammingLayout.value.dataPositions.forEach((position, index) => {
+    map.set(position, index);
+  });
+  return map;
 });
+
+const parityCalcRows = computed(() =>
+  hammingLayout.value.parityPositions.map((parityPos) => {
+    const inputPositions = hammingLayout.value.dataPositions.filter(
+      (position) => position & parityPos
+    );
+    const inputs = inputPositions.map((position) => {
+      const dataIndex = dataIndexByPosition.value.get(position) ?? 0;
+      return {
+        value: currentDataBlock.value[dataIndex] ?? 0,
+        role: "data" as const,
+        label: `D${dataIndex + 1}`,
+      };
+    });
+    const outputValue = currentEncodedBlock.value[parityPos - 1] ?? 0;
+    return {
+      position: parityPos,
+      output: [{ value: outputValue, role: "parity" as const, label: `P${parityPos}` }],
+      inputs,
+      inputPositions,
+    };
+  })
+);
 
 
 const hammingErrorCount = computed(
@@ -302,61 +315,63 @@ const hammingErrorCount = computed(
 );
 
 const getReceivedAt = (position: number) => currentReceivedBlock.value[position - 1] ?? 0;
-const s1 = computed(() => getReceivedAt(1) ^ getReceivedAt(3) ^ getReceivedAt(5) ^ getReceivedAt(7));
-const s2 = computed(() => getReceivedAt(2) ^ getReceivedAt(3) ^ getReceivedAt(6) ^ getReceivedAt(7));
-const s3 = computed(() => getReceivedAt(4) ^ getReceivedAt(5) ^ getReceivedAt(6) ^ getReceivedAt(7));
 
-const s1Output = computed<BitItem[]>(() => [{ value: s1.value, role: "parity", label: "S1" }]);
-const s2Output = computed<BitItem[]>(() => [{ value: s2.value, role: "parity", label: "S2" }]);
-const s3Output = computed<BitItem[]>(() => [{ value: s3.value, role: "parity", label: "S3" }]);
+const syndromeRows = computed(() =>
+  hammingLayout.value.parityPositions.map((parityPos) => {
+    const coverPositions = Array.from(
+      { length: hammingLayout.value.totalLength },
+      (_, index) => index + 1
+    ).filter((position) => position & parityPos);
+    const inputs = coverPositions.map((position) => ({
+      value: getReceivedAt(position),
+      role: positionLabels.value[position]?.startsWith("P") ? "parity" : "data",
+      label: positionLabels.value[position] || `B${position}`,
+    }));
+    const syndromeValue = coverPositions.reduce(
+      (acc, position) => acc ^ getReceivedAt(position),
+      0
+    );
+    return {
+      position: parityPos,
+      output: [{ value: syndromeValue, role: "parity" as const, label: `S${parityPos}` }],
+      inputs,
+      inputPositions: coverPositions,
+      coverPositions,
+      value: syndromeValue,
+    };
+  })
+);
 
-const labelForPosition = (position: number) => hammingLabels[position - 1] || `P${position}`;
-const roleForPosition = (position: number) =>
-  labelForPosition(position).startsWith("P") ? "parity" : "data";
-
-const s1Inputs = computed<BitItem[]>(() => [
-  { value: getReceivedAt(1), role: roleForPosition(1), label: labelForPosition(1) },
-  { value: getReceivedAt(3), role: roleForPosition(3), label: labelForPosition(3) },
-  { value: getReceivedAt(5), role: roleForPosition(5), label: labelForPosition(5) },
-  { value: getReceivedAt(7), role: roleForPosition(7), label: labelForPosition(7) },
-]);
-const s2Inputs = computed<BitItem[]>(() => [
-  { value: getReceivedAt(2), role: roleForPosition(2), label: labelForPosition(2) },
-  { value: getReceivedAt(3), role: roleForPosition(3), label: labelForPosition(3) },
-  { value: getReceivedAt(6), role: roleForPosition(6), label: labelForPosition(6) },
-  { value: getReceivedAt(7), role: roleForPosition(7), label: labelForPosition(7) },
-]);
-const s3Inputs = computed<BitItem[]>(() => [
-  { value: getReceivedAt(4), role: roleForPosition(4), label: labelForPosition(4) },
-  { value: getReceivedAt(5), role: roleForPosition(5), label: labelForPosition(5) },
-  { value: getReceivedAt(6), role: roleForPosition(6), label: labelForPosition(6) },
-  { value: getReceivedAt(7), role: roleForPosition(7), label: labelForPosition(7) },
-]);
+const syndromeSummary = computed(() =>
+  syndromeRows.value.map((row) => ({
+    position: row.position,
+    value: row.value,
+    coverPositions: row.coverPositions,
+  }))
+);
 
 const hammingAnalysis = computed(() => {
   const code = [...currentReceivedBlock.value];
-  while (code.length < 7) code.push(0);
-  const s1 = code[0] ^ code[2] ^ code[4] ^ code[6];
-  const s2 = code[1] ^ code[2] ^ code[5] ^ code[6];
-  const s4 = code[3] ^ code[4] ^ code[5] ^ code[6];
-  const syndrome = s1 + s2 * 2 + s4 * 4;
+  while (code.length < hammingLayout.value.totalLength) code.push(0);
+  const syndromeBits = syndromeRows.value.map((row) => ({
+    position: row.position,
+    value: row.value,
+  }));
+  const syndrome = syndromeBits.reduce(
+    (acc, bit) => acc + bit.value * bit.position,
+    0
+  );
   const corrected = [...code];
   let correctedIndex: number | null = null;
-  if (syndrome > 0 && syndrome <= 7) {
+  if (syndrome > 0 && syndrome <= hammingLayout.value.totalLength) {
     corrected[syndrome - 1] = corrected[syndrome - 1] ? 0 : 1;
     correctedIndex = syndrome;
   }
-  const dataBits = [corrected[2], corrected[4], corrected[5], corrected[6]];
-  return { s1, s2, s4, syndrome, correctedIndex, dataBits };
+  const dataBits = hammingLayout.value.dataPositions.map(
+    (position) => corrected[position - 1] ?? 0
+  );
+  return { syndrome, correctedIndex, dataBits };
 });
-
-const hammingDecodedInfo = computed<BitItem[]>(() =>
-  hammingAnalysis.value.dataBits.map((bit, bitIndex) => ({
-    value: bit,
-    role: "data",
-    label: `D${bitIndex + 1}`,
-  }))
-);
 
 const decodedStreamInfo = computed<BitItem[]>(() =>
   hammingDecodedStream.value.map((bit, index) => ({
@@ -364,5 +379,26 @@ const decodedStreamInfo = computed<BitItem[]>(() =>
     role: "data",
     label: `D${index + 1}`,
   }))
+);
+
+const syndromeOrder = computed(() =>
+  [...hammingLayout.value.parityPositions].sort((a, b) => b - a)
+);
+
+const syndromeBinary = computed(() =>
+  syndromeOrder.value
+    .map(
+      (position) =>
+        syndromeRows.value.find((row) => row.position === position)?.value ?? 0
+    )
+    .join("")
+);
+
+const syndromeLabel = computed(() =>
+  syndromeOrder.value.map((position) => `S${position}`).join(" ")
+);
+
+const parityPositionsText = computed(() =>
+  hammingLayout.value.parityPositions.join(", ")
 );
 </script>

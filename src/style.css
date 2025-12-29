@@ -10,6 +10,9 @@
   .bit-chip {
     @apply flex h-14 w-14 flex-col items-center justify-center gap-1 rounded-xl border border-base-300 bg-white text-lg font-semibold transition cursor-pointer select-none pointer-events-auto;
   }
+  .bit-chip-active {
+    @apply bg-slate-200 text-slate-900 shadow-sm;
+  }
   .bit-chip-error {
     @apply bg-rose-200 text-rose-950;
   }

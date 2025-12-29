@@ -61,7 +61,7 @@ export interface BitItem {
 
 const props = withDefaults(
   defineProps<{
-    title: string;
+    title?: string;
     bits: BitItem[];
     description?: string;
     readOnly?: boolean;
@@ -74,6 +74,7 @@ const props = withDefaults(
     hideTitle?: boolean;
   }>(),
   {
+    title: "",
     description: "",
     readOnly: false,
     highlightIndices: () => [],
@@ -101,8 +102,9 @@ const indexWidth = computed(() => {
 
 const chipClass = (bit: BitItem, index: number) => {
   const classes = [];
+  if (bit.value === 1) classes.push("bit-chip-active");
   if (highlightSet.value.has(index)) classes.push("bit-chip-error");
-  if (bit.role === "parity") classes.push("border-amber-300");
+  if (bit.role === "parity") classes.push("border-amber-300", "border-2");
   if (bit.role === "overall") classes.push("border-rose-300");
   return classes.join(" ");
 };

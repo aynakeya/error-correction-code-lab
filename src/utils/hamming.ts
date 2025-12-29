@@ -1,16 +1,44 @@
+const isPowerOfTwo = (value: number) => value > 0 && (value & (value - 1)) === 0;
+
+export const getParityCount = (dataLength: number): number => {
+  let r = 0;
+  while (2 ** r < dataLength + r + 1) r += 1;
+  return r;
+};
+
+export const getParityPositions = (totalLength: number): number[] =>
+  Array.from({ length: totalLength }, (_, index) => index + 1).filter(isPowerOfTwo);
+
+export const getDataPositions = (totalLength: number): number[] => {
+  const parityPositions = new Set(getParityPositions(totalLength));
+  return Array.from({ length: totalLength }, (_, index) => index + 1).filter(
+    (position) => !parityPositions.has(position)
+  );
+};
+
+export const buildHammingLayout = (dataLength: number) => {
+  const parityCount = getParityCount(dataLength);
+  const totalLength = dataLength + parityCount;
+  const parityPositions = getParityPositions(totalLength);
+  const dataPositions = getDataPositions(totalLength);
+  return { dataLength, parityCount, totalLength, parityPositions, dataPositions };
+};
+
 export const hammingEncode = (dataBits: number[]): number[] => {
-  const d = [...dataBits, 0, 0, 0, 0].slice(0, 4);
-  const code = Array(7).fill(0);
-  code[2] = d[0];
-  code[4] = d[1];
-  code[5] = d[2];
-  code[6] = d[3];
-  const p1 = code[2] ^ code[4] ^ code[6];
-  const p2 = code[2] ^ code[5] ^ code[6];
-  const p4 = code[4] ^ code[5] ^ code[6];
-  code[0] = p1;
-  code[1] = p2;
-  code[3] = p4;
+  const layout = buildHammingLayout(dataBits.length);
+  const code = Array(layout.totalLength).fill(0);
+  layout.dataPositions.forEach((position, index) => {
+    code[position - 1] = dataBits[index] ?? 0;
+  });
+  layout.parityPositions.forEach((parityPos) => {
+    let parity = 0;
+    for (let position = 1; position <= layout.totalLength; position += 1) {
+      if (position & parityPos && position !== parityPos) {
+        parity ^= code[position - 1] ?? 0;
+      }
+    }
+    code[parityPos - 1] = parity;
+  });
   return code;
 };
 
@@ -18,53 +46,69 @@ export const hammingDecode = (
   block: number[]
 ): { dataBits: number[]; syndrome: number; correctedIndex: number | null } => {
   const code = [...block];
-  while (code.length < 7) code.push(0);
-  const s1 = code[0] ^ code[2] ^ code[4] ^ code[6];
-  const s2 = code[1] ^ code[2] ^ code[5] ^ code[6];
-  const s4 = code[3] ^ code[4] ^ code[5] ^ code[6];
-  const syndrome = s1 + s2 * 2 + s4 * 4;
-  let correctedIndex = null;
-  if (syndrome > 0 && syndrome <= 7) {
+  const totalLength = code.length;
+  const parityPositions = getParityPositions(totalLength);
+  let syndrome = 0;
+  parityPositions.forEach((parityPos) => {
+    let parity = 0;
+    for (let position = 1; position <= totalLength; position += 1) {
+      if (position & parityPos) {
+        parity ^= code[position - 1] ?? 0;
+      }
+    }
+    if (parity !== 0) syndrome += parityPos;
+  });
+  let correctedIndex: number | null = null;
+  if (syndrome > 0 && syndrome <= totalLength) {
     const idx = syndrome - 1;
     code[idx] = code[idx] ? 0 : 1;
     correctedIndex = syndrome;
   }
-  const dataBits = [code[2], code[4], code[5], code[6]];
+  const dataBits = getDataPositions(totalLength).map((position) => code[position - 1] ?? 0);
   return { dataBits, syndrome, correctedIndex };
 };
 
 export const secdedEncode = (dataBits: number[]): number[] => {
-  const code7 = hammingEncode(dataBits);
-  const overallParity = code7.reduce((sum, bit) => sum + bit, 0) % 2;
-  return [...code7, overallParity];
+  const core = hammingEncode(dataBits);
+  const overallParity = core.reduce((sum, bit) => sum + bit, 0) % 2;
+  return [...core, overallParity];
 };
 
 export const secdedDecode = (
   block: number[]
-): { dataBits: number[]; status: string; statusClass: string } => {
+): { dataBits: number[]; status: string; statusClass: string; syndrome: number; parityError: boolean } => {
   const code = [...block];
-  while (code.length < 8) code.push(0);
-  const core = code.slice(0, 7);
-  const parityBit = code[7];
-  const s1 = core[0] ^ core[2] ^ core[4] ^ core[6];
-  const s2 = core[1] ^ core[2] ^ core[5] ^ core[6];
-  const s4 = core[3] ^ core[4] ^ core[5] ^ core[6];
-  const syndrome = s1 + s2 * 2 + s4 * 4;
-  const overall = (core.reduce((sum, bit) => sum + bit, 0) + parityBit) % 2;
-  let status = "No error detected";
+  const core = code.slice(0, -1);
+  const overallParityBit = code[code.length - 1] ?? 0;
+  const totalLength = core.length;
+  const parityPositions = getParityPositions(totalLength);
+  let syndrome = 0;
+  parityPositions.forEach((parityPos) => {
+    let parity = 0;
+    for (let position = 1; position <= totalLength; position += 1) {
+      if (position & parityPos) {
+        parity ^= core[position - 1] ?? 0;
+      }
+    }
+    if (parity !== 0) syndrome += parityPos;
+  });
+  const overall =
+    (core.reduce((sum, bit) => sum + bit, 0) + overallParityBit) % 2;
+  const parityError = overall !== 0;
+  let status = "未检测到错误";
   let statusClass = "text-emerald-600";
-  if (syndrome === 0 && overall === 1) {
-    status = "Error in overall parity bit";
+  if (syndrome === 0 && parityError) {
+    status = "总体校验位出错";
     statusClass = "text-amber-600";
-  } else if (syndrome !== 0 && overall === 1) {
+  } else if (syndrome !== 0 && parityError) {
     const idx = syndrome - 1;
     core[idx] = core[idx] ? 0 : 1;
-    status = `Single-bit corrected at position ${syndrome}`;
+    status = `单比特纠正，位置 ${syndrome}`;
     statusClass = "text-emerald-600";
-  } else if (syndrome !== 0 && overall === 0) {
-    status = "Double error detected (uncorrectable)";
+  } else if (syndrome !== 0 && !parityError) {
+    status = "检测到双比特错误（不可纠正）";
     statusClass = "text-rose-600";
   }
-  const dataBits = [core[2], core[4], core[5], core[6]];
-  return { dataBits, status, statusClass };
+  const dataBits = getDataPositions(totalLength).map((position) => core[position - 1] ?? 0);
+  return { dataBits, status, statusClass, syndrome, parityError };
 };
