@@ -8,12 +8,9 @@
 
 @layer components {
   .bit-chip {
-    @apply flex h-10 w-10 items-center justify-center rounded-xl border border-base-300 text-lg font-semibold transition cursor-pointer select-none pointer-events-auto;
-  }
-  .bit-chip-active {
-    @apply bg-lime-300 text-lime-950 shadow-sm;
+    @apply flex h-14 w-14 flex-col items-center justify-center gap-1 rounded-xl border border-base-300 bg-white text-lg font-semibold transition cursor-pointer select-none pointer-events-auto;
   }
   .bit-chip-error {
-    @apply bg-rose-300 text-rose-950;
+    @apply bg-rose-200 text-rose-950;
   }
 }

@@ -67,6 +67,7 @@ const props = withDefaults(
     description?: string;
     mode: Mode;
     bits: number[];
+    compareBits?: number[];
     onFlip?: (position: number) => void;
   }>(),
   { description: "" }
@@ -95,6 +96,9 @@ const gridPositions = computed(() => {
 
 const formatIndex = (pos: number) => {
   if (pos <= 0) return "";
+  if (props.mode === "secded" && pos === 8) {
+    return indexFormatState.value === "binary" ? "000" : "0";
+  }
   const bin = pos.toString(2).padStart(3, "0");
   return indexFormatState.value === "binary" ? bin : `${pos}`;
 };
@@ -114,9 +118,28 @@ const bitValue = (pos: number) => {
   return props.bits[pos - 1] ?? 0;
 };
 
+const compareValue = (pos: number) => {
+  if (!props.compareBits || pos <= 0) return null;
+  if (props.mode === "secded" && pos === 8) {
+    return props.compareBits[7] ?? 0;
+  }
+  return props.compareBits[pos - 1] ?? 0;
+};
+
 const parityPositions = computed(() => {
   const base = [1, 2, 4];
   return props.mode === "secded" ? [...base, 8] : base;
+});
+
+const errorPositions = computed(() => {
+  if (!props.compareBits) return [];
+  return gridPositions.value.filter((pos) => {
+    if (pos <= 0) return false;
+    const current = bitValue(pos);
+    const compare = compareValue(pos);
+    if (compare === null) return false;
+    return current !== compare;
+  });
 });
 
 const highlightPositions = computed(() => {
@@ -140,19 +163,29 @@ const highlightPositions = computed(() => {
 });
 
 const cellClass = (pos: number) => {
-  const classes = ["border-base-300", "bg-white"];
-  const value = bitValue(pos);
-  if (value === 1) classes.push("bg-lime-200", "text-lime-950");
-  if (highlightPositions.value.includes(pos)) {
+  const classes = ["border-base-300"];
+  const isHighlighted = highlightPositions.value.includes(pos);
+  const isParity = parityPositions.value.includes(pos);
+  const isError = errorPositions.value.includes(pos);
+  if (isError) {
+    classes.push("bg-rose-200", "text-rose-950", "border-rose-300");
+  } else {
+    classes.push("bg-white");
+  }
+  if (isHighlighted) {
     classes.push("ring-2", "ring-sky-300");
   }
-  if (parityPositions.value.includes(pos)) {
-    classes.push("border-amber-300");
+  if (isParity) {
+    classes.push("border-amber-300", "border-2");
+    if (!isHighlighted) {
+      classes.push("ring-1", "ring-amber-300", "ring-inset");
+    }
   }
   if (
     hoveredPosition.value > 0 &&
     pos > 0 &&
-    !highlightPositions.value.includes(pos)
+    !isHighlighted &&
+    !isError
   ) {
     classes.push("opacity-40");
   }

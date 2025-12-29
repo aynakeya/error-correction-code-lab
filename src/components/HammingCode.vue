@@ -108,6 +108,7 @@
             description="点击比特翻转，悬停查看覆盖关系。"
             mode="hamming"
             :bits="currentReceivedBlock"
+            :compare-bits="currentEncodedBlock"
             :on-flip="(position) => toggleHammingPosition(selectedBlock, position)"
           />
         </div>

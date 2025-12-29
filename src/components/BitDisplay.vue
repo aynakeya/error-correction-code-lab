@@ -31,13 +31,16 @@
           :class="chipClass(bit, index)"
           @click.stop="emit('bit-click', index)"
         >
-          {{ bit.value }}
+          <span class="leading-none">{{ bit.value }}</span>
+          <span v-if="bit.label" class="text-[10px] uppercase tracking-wide text-slate-500">
+            {{ bit.label }}
+          </span>
         </button>
         <span v-else class="bit-chip" :class="chipClass(bit, index)">
-          {{ bit.value }}
-        </span>
-        <span v-if="bit.label" class="text-[10px] uppercase tracking-wide text-slate-400">
-          {{ bit.label }}
+          <span class="leading-none">{{ bit.value }}</span>
+          <span v-if="bit.label" class="text-[10px] uppercase tracking-wide text-slate-500">
+            {{ bit.label }}
+          </span>
         </span>
       </div>
       <span v-if="bits.length === 0" class="text-xs text-slate-400">暂无比特。</span>
@@ -98,7 +101,6 @@ const indexWidth = computed(() => {
 
 const chipClass = (bit: BitItem, index: number) => {
   const classes = [];
-  if (bit.value) classes.push("bit-chip-active");
   if (highlightSet.value.has(index)) classes.push("bit-chip-error");
   if (bit.role === "parity") classes.push("border-amber-300");
   if (bit.role === "overall") classes.push("border-rose-300");

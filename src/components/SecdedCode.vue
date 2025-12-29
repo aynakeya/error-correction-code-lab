@@ -96,6 +96,7 @@
             description="点击比特翻转，悬停查看覆盖关系。"
             mode="secded"
             :bits="currentReceivedBlock"
+            :compare-bits="currentEncodedBlock"
             :on-flip="(position) => toggleSecdedPosition(selectedBlock, position)"
           />
         </div>
