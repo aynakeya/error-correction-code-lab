@@ -5,32 +5,34 @@
         <div class="w-full md:w-2/3">
           <BitInput v-model="secdedInput" label="输入比特（每 4 位一组）" />
         </div>
-        <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
-          <p class="text-sm font-semibold text-slate-600">布局说明</p>
-          <p class="text-xs text-slate-500">汉明(7,4) + 总体校验位。</p>
+        <div class="flex w-full flex-col gap-3 md:w-1/3">
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
+            <p class="text-sm font-semibold text-slate-600">布局说明</p>
+            <p class="text-xs text-slate-500">汉明(7,4) + 总体校验位。</p>
+          </div>
+          <div
+            v-if="secdedEncodedBlocks.length > 1"
+            class="rounded-2xl border border-base-200 bg-base-100 p-4"
+          >
+            <div class="flex items-center gap-3 text-sm text-slate-600">
+              <span class="font-semibold">分组选择</span>
+              <div class="join">
+                <button
+                  v-for="(_, index) in secdedEncodedBlocks"
+                  :key="`block-${index}`"
+                  class="btn btn-xs join-item"
+                  :class="selectedBlock === index ? 'btn-primary' : 'btn-ghost'"
+                  @click="selectedBlock = index"
+                >
+                  {{ index + 1 }}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="flex flex-col gap-6">
-        <div
-          v-if="secdedEncodedBlocks.length > 1"
-          class="rounded-2xl border border-base-200 bg-base-100 p-4"
-        >
-          <div class="flex items-center gap-3 text-sm text-slate-600">
-            <span class="font-semibold">分组选择</span>
-            <div class="join">
-              <button
-                v-for="(_, index) in secdedEncodedBlocks"
-                :key="`block-${index}`"
-                class="btn btn-xs join-item"
-                :class="selectedBlock === index ? 'btn-primary' : 'btn-ghost'"
-                @click="selectedBlock = index"
-              >
-                {{ index + 1 }}
-              </button>
-            </div>
-          </div>
-        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 text-sm text-slate-600 leading-6">
@@ -80,27 +82,21 @@
             <p class="mt-2 text-xs text-slate-500">偶校验：每组 XOR 的结果就是对应校验位。</p>
           </div>
 
-          <div class="relative">
-            <BitDisplay
-              title="发送端编码"
-              :bits="secdedEncodedInfo"
-              description="8 位 SEC-DED"
-              show-index
-              :index-offset="1"
-              read-only
-            />
-          </div>
+          <HammingGrid
+            title="发送端编码"
+            description="8 位 SEC-DED"
+            mode="secded"
+            :bits="currentEncodedBlock"
+          />
         </div>
 
         <div class="grid grid-cols-1 gap-6">
-          <BitDisplay
+          <HammingGrid
             title="接收端"
-            :bits="secdedReceivedInfo"
-            description="点击比特翻转。"
-            :highlight-indices="secdedErrorIndices"
-            show-index
-            :index-offset="1"
-            @bit-click="(index) => toggleSecdedBit(selectedBlock, index)"
+            description="点击比特翻转，悬停查看覆盖关系。"
+            mode="secded"
+            :bits="currentReceivedBlock"
+            :on-flip="(position) => toggleSecdedPosition(selectedBlock, position)"
           />
         </div>
 
@@ -140,7 +136,7 @@
                   class="text-base font-semibold"
                   :class="secdedAnalysis.parityError ? 'text-rose-600' : 'text-emerald-600'"
                 >
-                  {{ secdedAnalysis.parityError ? "FAIL" : "PASS" }}
+                  {{ secdedAnalysis.parityError ? "失败" : "通过" }}
                 </div>
               </div>
               <div class="rounded border border-base-200 bg-white/70 p-2 text-center">
@@ -155,8 +151,7 @@
               <span class="font-mono text-slate-800">
                 {{ secdedAnalysis.s4 }}{{ secdedAnalysis.s2 }}{{ secdedAnalysis.s1 }}
               </span>
-              binary = <span class="font-semibold text-slate-800">{{ secdedAnalysis.syndrome }}</span>
-              decimal
+              十进制 = <span class="font-semibold text-slate-800">{{ secdedAnalysis.syndrome }}</span>
             </div>
             <div
               class="rounded border px-3 py-2 text-sm"
@@ -201,6 +196,7 @@
 import { computed, ref, watch } from "vue";
 import BitInput from "./BitInput.vue";
 import BitDisplay, { BitItem } from "./BitDisplay.vue";
+import HammingGrid from "./HammingGrid.vue";
 import { padBits, toBits } from "../utils/bits";
 import { secdedDecode, secdedEncode } from "../utils/hamming";
 
@@ -239,6 +235,12 @@ const toggleSecdedBit = (blockIndex: number, bitIndex: number) => {
   secdedReceived.value[flatIndex] = secdedReceived.value[flatIndex] ? 0 : 1;
 };
 
+const toggleSecdedPosition = (blockIndex: number, position: number) => {
+  if (position <= 0) return;
+  const bitIndex = position === 8 ? 7 : position - 1;
+  toggleSecdedBit(blockIndex, bitIndex);
+};
+
 const secdedReceivedBlocks = computed(() => {
   const blocks: number[][] = [];
   for (let i = 0; i < secdedReceived.value.length; i += 8) {
@@ -251,37 +253,11 @@ const secdedDecoded = computed(() =>
   secdedReceivedBlocks.value.map((block) => secdedDecode(block))
 );
 
-const secdedDecodedStream = computed(() =>
-  secdedDecoded.value.flatMap((result) => result.dataBits)
-);
-
 const secdedLabels: string[] = ["P1", "P2", "D1", "P4", "D2", "D3", "D4", "P8"];
 
 const currentEncodedBlock = computed(() => secdedEncodedBlocks.value[selectedBlock.value] || []);
 const currentReceivedBlock = computed(() => secdedReceivedBlocks.value[selectedBlock.value] || []);
 const currentDataBlock = computed(() => secdedBlocks.value[selectedBlock.value] || [0, 0, 0, 0]);
-
-const secdedEncodedInfo = computed<BitItem[]>(() =>
-  currentEncodedBlock.value.map((bit, index) => ({
-    value: bit,
-    role: secdedLabels[index].startsWith("P") ? "parity" : "data",
-    label: secdedLabels[index],
-  }))
-);
-
-const secdedReceivedInfo = computed<BitItem[]>(() =>
-  currentReceivedBlock.value.map((bit, index) => ({
-    value: bit,
-    role: secdedLabels[index].startsWith("P") ? "parity" : "data",
-    label: secdedLabels[index],
-  }))
-);
-
-const secdedErrorIndices = computed(() =>
-  currentReceivedBlock.value
-    .map((bit, index) => (bit !== currentEncodedBlock.value[index] ? index : -1))
-    .filter((index) => index !== -1)
-);
 
 const secdedAnalysis = computed(() => {
   const code = [...currentReceivedBlock.value];

@@ -5,32 +5,34 @@
         <div class="w-full md:w-2/3">
           <BitInput v-model="hammingInput" label="输入比特（每 4 位一组）" />
         </div>
-        <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
-          <p class="text-sm font-semibold text-slate-600">布局说明</p>
-          <p class="text-xs text-slate-500">位置 1、2、4 为校验位（偶校验）。</p>
+        <div class="flex w-full flex-col gap-3 md:w-1/3">
+          <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
+            <p class="text-sm font-semibold text-slate-600">布局说明</p>
+            <p class="text-xs text-slate-500">位置 1、2、4 为校验位（偶校验）。</p>
+          </div>
+          <div
+            v-if="hammingEncodedBlocks.length > 1"
+            class="rounded-2xl border border-base-200 bg-base-100 p-4"
+          >
+            <div class="flex items-center gap-3 text-sm text-slate-600">
+              <span class="font-semibold">分组选择</span>
+              <div class="join">
+                <button
+                  v-for="(_, index) in hammingEncodedBlocks"
+                  :key="`block-${index}`"
+                  class="btn btn-xs join-item"
+                  :class="selectedBlock === index ? 'btn-primary' : 'btn-ghost'"
+                  @click="selectedBlock = index"
+                >
+                  {{ index + 1 }}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="flex flex-col gap-6">
-        <div
-          v-if="hammingEncodedBlocks.length > 1"
-          class="rounded-2xl border border-base-200 bg-base-100 p-4"
-        >
-          <div class="flex items-center gap-3 text-sm text-slate-600">
-            <span class="font-semibold">分组选择</span>
-            <div class="join">
-              <button
-                v-for="(_, index) in hammingEncodedBlocks"
-                :key="`block-${index}`"
-                class="btn btn-xs join-item"
-                :class="selectedBlock === index ? 'btn-primary' : 'btn-ghost'"
-                @click="selectedBlock = index"
-              >
-                {{ index + 1 }}
-              </button>
-            </div>
-          </div>
-        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 text-sm text-slate-600 leading-6">
@@ -91,28 +93,22 @@
             <p class="mt-2 text-xs text-slate-500">偶校验：每组 XOR 的结果就是对应校验位。</p>
           </div>
 
-          <div class="relative">
-            <BitDisplay
-              title="发送端编码"
-              :bits="hammingEncodedInfo"
-              description="7 位码字"
-              show-index
-              :index-offset="1"
-              read-only
-            />
-          </div>
+          <HammingGrid
+            title="发送端编码"
+            description="7 位码字"
+            mode="hamming"
+            :bits="currentEncodedBlock"
+          />
         </div>
 
 
         <div class="grid grid-cols-1 gap-6">
-          <BitDisplay
+          <HammingGrid
             title="接收端"
-            :bits="hammingReceivedInfo"
-            description="点击任意比特翻转。"
-            :highlight-indices="hammingErrorIndices"
-            show-index
-            :index-offset="1"
-            @bit-click="(index) => toggleHammingBit(selectedBlock, index)"
+            description="点击比特翻转，悬停查看覆盖关系。"
+            mode="hamming"
+            :bits="currentReceivedBlock"
+            :on-flip="(position) => toggleHammingPosition(selectedBlock, position)"
           />
         </div>
 
@@ -159,8 +155,7 @@
               <span class="font-mono text-slate-800">
                 {{ hammingAnalysis.s4 }}{{ hammingAnalysis.s2 }}{{ hammingAnalysis.s1 }}
               </span>
-              二进制 = <span class="font-semibold text-slate-800">{{ hammingAnalysis.syndrome }}</span>
-              十进制
+              十进制 = <span class="font-semibold text-slate-800">{{ hammingAnalysis.syndrome }}</span>
             </div>
             <div
               class="mt-3 rounded border px-3 py-2 text-sm"
@@ -175,8 +170,8 @@
             </div>
 
             <div class="mt-4">
-            <p class="text-sm font-semibold text-slate-600">解码结果</p>
-            <BitDisplay title="输出" :bits="decodedStreamInfo" read-only />
+              <p class="text-sm font-semibold text-slate-600">解码结果</p>
+              <BitDisplay title="输出" :bits="decodedStreamInfo" read-only />
               <div class="mt-3 text-sm">
                 <span v-if="hammingErrorCount === 0" class="text-emerald-600 font-semibold">
                   解码正确
@@ -200,6 +195,7 @@
 import { computed, ref, watch } from "vue";
 import BitInput from "./BitInput.vue";
 import BitDisplay, { BitItem } from "./BitDisplay.vue";
+import HammingGrid from "./HammingGrid.vue";
 import { padBits, toBits } from "../utils/bits";
 import { hammingDecode, hammingEncode } from "../utils/hamming";
 
@@ -234,6 +230,11 @@ const toggleHammingBit = (blockIndex: number, bitIndex: number) => {
   const flatIndex = blockIndex * 7 + bitIndex;
   if (flatIndex < 0 || flatIndex >= hammingReceived.value.length) return;
   hammingReceived.value[flatIndex] = hammingReceived.value[flatIndex] ? 0 : 1;
+};
+
+const toggleHammingPosition = (blockIndex: number, position: number) => {
+  if (position <= 0) return;
+  toggleHammingBit(blockIndex, position - 1);
 };
 
 const hammingReceivedBlocks = computed(() => {
@@ -292,28 +293,12 @@ const dBits = computed(() => {
 });
 
 
-const hammingEncodedInfo = computed<BitItem[]>(() =>
-  currentEncodedBlock.value.map((bit, index) => ({
-    value: bit,
-    role: hammingLabels[index].startsWith("P") ? "parity" : "data",
-    label: hammingLabels[index],
-  }))
+const hammingErrorCount = computed(
+  () =>
+    currentReceivedBlock.value.filter(
+      (bit, index) => bit !== currentEncodedBlock.value[index]
+    ).length
 );
-
-const hammingReceivedInfo = computed<BitItem[]>(() =>
-  currentReceivedBlock.value.map((bit, index) => ({
-    value: bit,
-    role: hammingLabels[index].startsWith("P") ? "parity" : "data",
-    label: hammingLabels[index],
-  }))
-);
-
-const hammingErrorIndices = computed(() =>
-  currentReceivedBlock.value
-    .map((bit, index) => (bit !== currentEncodedBlock.value[index] ? index : -1))
-    .filter((index) => index !== -1)
-);
-const hammingErrorCount = computed(() => hammingErrorIndices.value.length);
 
 const getReceivedAt = (position: number) => currentReceivedBlock.value[position - 1] ?? 0;
 const s1 = computed(() => getReceivedAt(1) ^ getReceivedAt(3) ^ getReceivedAt(5) ^ getReceivedAt(7));
