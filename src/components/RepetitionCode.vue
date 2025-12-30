@@ -3,11 +3,11 @@
     <div class="card-body gap-6">
       <div class="flex flex-col gap-4 md:flex-row md:items-end">
         <div class="w-full md:w-2/3">
-          <BitInput v-model="repInput" label="输入比特" />
+          <BitInput v-model="repInput" :label="t('repetition.label')" />
         </div>
         <label class="form-control w-full md:w-1/3">
           <div class="label">
-            <span class="label-text">重复次数（奇数）</span>
+            <span class="label-text">{{ t("repetition.repeatTimes") }}</span>
           </div>
           <input v-model.number="repFactor" type="number" min="1" step="2" class="input input-bordered" />
         </label>
@@ -16,9 +16,9 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
         <div class="relative">
           <BitDisplay
-            title="发送端编码"
+            :title="t('common.encoded')"
             :bits="repEncodedInfo"
-            description="每个比特重复 n 次。"
+            :description="t('repetition.encodedDesc')"
             show-index
             :index-offset="1"
             read-only
@@ -30,9 +30,9 @@
 
         <div class="relative">
           <BitDisplay
-            title="接收端"
+            :title="t('common.received')"
             :bits="repReceivedInfo"
-            description="点击任意比特翻转。"
+            :description="t('repetition.receivedDesc')"
             :highlight-indices="repErrorIndices"
             show-index
             :index-offset="1"
@@ -44,15 +44,15 @@
         </div>
 
         <div class="rounded-2xl border border-base-200 bg-base-100 p-4 flex flex-col gap-4">
-          <p class="text-sm font-semibold text-slate-600">多数表决解码</p>
-          <BitDisplay title="解码结果" :bits="repDecodedInfo" read-only />
+          <p class="text-sm font-semibold text-slate-600">{{ t("repetition.majority") }}</p>
+          <BitDisplay :title="t('common.decodeResult')" :bits="repDecodedInfo" read-only />
           <div class="text-xs text-slate-500">
-            翻转比特数：<span class="font-semibold text-slate-700">{{ repErrorIndices.length }}</span>
+            {{ t("repetition.flipCount", { count: repErrorIndices.length }) }}
           </div>
           <div class="text-xs text-slate-500">
-            状态：
+            {{ t("common.status") }}
             <span :class="repIsCorrect ? 'text-emerald-600' : 'text-rose-600'" class="font-semibold">
-              {{ repIsCorrect ? "解码正确" : "解码错误" }}
+              {{ repIsCorrect ? t("repetition.decodeOk") : t("repetition.decodeFail") }}
             </span>
           </div>
         </div>
@@ -66,9 +66,11 @@ import { computed, ref, watch } from "vue";
 import BitInput from "./BitInput.vue";
 import BitDisplay, { BitItem } from "./BitDisplay.vue";
 import { toBits } from "../utils/bits";
+import { useI18n } from "../i18n";
 
 const repInput = ref("101101");
 const repFactor = ref<number>(3);
+const { t } = useI18n();
 
 const repInputBits = computed(() => toBits(repInput.value));
 

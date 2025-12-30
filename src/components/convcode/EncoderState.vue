@@ -1,7 +1,7 @@
 <template>
   <div class="w-full bg-base-100 rounded-lg border border-base-200 p-4 shadow-sm overflow-x-auto">
     <h3 class="text-slate-600 text-sm font-bold mb-2 uppercase tracking-wider">
-      编码器电路 (n={{ config.n }}, k=1, K={{ config.v + 1 }})
+      {{ t("conv.encoderCircuit", { n: config.n, k: config.v + 1 }) }}
     </h3>
     <svg
       width="100%"
@@ -17,7 +17,7 @@
       </defs>
 
       <text :x="startX" :y="registerY - 40" fill="#64748b" text-anchor="middle" font-size="12">
-        输入
+        {{ t("conv.encoderInput") }}
       </text>
 
       <g v-for="(bit, idx) in displayBits" :key="`reg-${idx}`">
@@ -58,7 +58,7 @@
           fill="#94a3b8"
           font-size="10"
         >
-          {{ idx === 0 ? "输入" : `M${idx}` }}
+          {{ idx === 0 ? t("conv.encoderInput") : t("conv.encoderMemory", { idx }) }}
         </text>
       </g>
 
@@ -123,12 +123,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { EncoderConfig, SimulationStep } from "../../utils/convcode";
+import { useI18n } from "../../i18n";
 
 const props = defineProps<{
   config: EncoderConfig;
   currentStepData: SimulationStep | null;
   isActive: boolean;
 }>();
+const { t } = useI18n();
 
 const width = 800;
 const height = 300;

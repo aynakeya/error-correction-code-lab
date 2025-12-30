@@ -19,7 +19,7 @@
           v-if="showIndexBadge(pos)"
           type="button"
           class="leading-none"
-          :title="indexFormatState === 'binary' ? '二进制索引' : '十进制索引'"
+          :title="indexFormatState === 'binary' ? t('bit.index.binary') : t('bit.index.decimal')"
           @click.stop="toggleIndexFormat"
         >
           <span
@@ -52,7 +52,7 @@
           v-else
           class="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-base-300 text-xs text-slate-400"
         >
-          空位
+          {{ t("bit.empty") }}
         </div>
       </div>
     </div>
@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "../i18n";
 
 const props = withDefaults(
   defineProps<{
@@ -79,6 +80,7 @@ const props = withDefaults(
 
 const indexFormatState = ref<"binary" | "decimal">("binary");
 const hoveredPosition = ref<number>(-1);
+const { t } = useI18n();
 
 const isOverallPosition = (pos: number) =>
   typeof props.overallPosition === "number" && pos === props.overallPosition;

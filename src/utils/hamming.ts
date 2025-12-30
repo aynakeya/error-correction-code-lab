@@ -76,7 +76,14 @@ export const secdedEncode = (dataBits: number[]): number[] => {
 
 export const secdedDecode = (
   block: number[]
-): { dataBits: number[]; status: string; statusClass: string; syndrome: number; parityError: boolean } => {
+): {
+  dataBits: number[];
+  statusKey: string;
+  statusParams?: { position?: number };
+  statusClass: string;
+  syndrome: number;
+  parityError: boolean;
+} => {
   const code = [...block];
   const core = code.slice(0, -1);
   const overallParityBit = code[code.length - 1] ?? 0;
@@ -95,20 +102,22 @@ export const secdedDecode = (
   const overall =
     (core.reduce((sum, bit) => sum + bit, 0) + overallParityBit) % 2;
   const parityError = overall !== 0;
-  let status = "未检测到错误";
+  let statusKey = "secded.status.none";
   let statusClass = "text-emerald-600";
+  let statusParams: { position?: number } | undefined;
   if (syndrome === 0 && parityError) {
-    status = "总体校验位出错";
+    statusKey = "secded.status.overall";
     statusClass = "text-amber-600";
   } else if (syndrome !== 0 && parityError) {
     const idx = syndrome - 1;
     core[idx] = core[idx] ? 0 : 1;
-    status = `单比特纠正，位置 ${syndrome}`;
+    statusKey = "secded.status.single";
+    statusParams = { position: syndrome };
     statusClass = "text-emerald-600";
   } else if (syndrome !== 0 && !parityError) {
-    status = "检测到双比特错误（不可纠正）";
+    statusKey = "secded.status.double";
     statusClass = "text-rose-600";
   }
   const dataBits = getDataPositions(totalLength).map((position) => core[position - 1] ?? 0);
-  return { dataBits, status, statusClass, syndrome, parityError };
+  return { dataBits, statusKey, statusParams, statusClass, syndrome, parityError };
 };

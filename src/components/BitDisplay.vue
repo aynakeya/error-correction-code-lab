@@ -10,7 +10,7 @@
           v-if="showIndex"
           type="button"
           class="leading-none"
-          :title="indexFormatState === 'binary' ? '二进制索引' : '十进制索引'"
+          :title="indexFormatState === 'binary' ? t('bit.index.binary') : t('bit.index.decimal')"
           @click.stop="toggleIndexFormat"
         >
           <span
@@ -43,13 +43,16 @@
           </span>
         </span>
       </div>
-      <span v-if="bits.length === 0" class="text-xs text-slate-400">暂无比特。</span>
+      <span v-if="bits.length === 0" class="text-xs text-slate-400">
+        {{ t("bit.none") }}
+      </span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "../i18n";
 
 type BitRole = "data" | "parity" | "overall" | "repeat";
 
@@ -110,6 +113,7 @@ const chipClass = (bit: BitItem, index: number) => {
 };
 
 const indexFormatState = ref<"binary" | "decimal">(props.indexFormat);
+const { t } = useI18n();
 
 watch(
   () => props.indexFormat,

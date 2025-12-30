@@ -5,15 +5,17 @@
         <div class="w-full md:w-2/3">
           <BitInput
             v-model="hammingInput"
-            :label="`输入比特（每 ${normalizedBlockSize} 位一组）`"
+            :label="t('hamming.label', { size: normalizedBlockSize })"
           />
         </div>
         <div class="flex w-full flex-col gap-3 md:w-1/3">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
-            <p class="text-sm font-semibold text-slate-600">布局说明</p>
-            <p class="text-xs text-slate-500">校验位位置：{{ parityPositionsText }}（偶校验）。</p>
+            <p class="text-sm font-semibold text-slate-600">{{ t("hamming.layoutTitle") }}</p>
+            <p class="text-xs text-slate-500">
+              {{ t("hamming.layoutDesc", { positions: parityPositionsText }) }}
+            </p>
             <div class="mt-3 flex items-center gap-2 text-xs text-slate-500">
-              <span>每组信息位数</span>
+              <span>{{ t("hamming.dataPerBlock") }}</span>
               <input
                 v-model.number="dataBitsPerBlock"
                 type="number"
@@ -21,7 +23,7 @@
                 max="32"
                 class="input input-bordered input-xs w-16"
               />
-              <span>码长 {{ hammingLayout.totalLength }}</span>
+              <span>{{ t("hamming.codeLength", { length: hammingLayout.totalLength }) }}</span>
             </div>
           </div>
           <div
@@ -29,7 +31,7 @@
             class="rounded-2xl border border-base-200 bg-base-100 p-4"
           >
             <div class="flex items-center gap-3 text-sm text-slate-600">
-              <span class="font-semibold">分组选择</span>
+              <span class="font-semibold">{{ t("hamming.blockSelect") }}</span>
               <div class="join">
                 <button
                   v-for="(_, index) in hammingEncodedBlocks"
@@ -50,7 +52,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 text-sm text-slate-600 leading-6">
-            <p class="font-semibold text-slate-700">校验位计算</p>
+            <p class="font-semibold text-slate-700">{{ t("common.parityCalc") }}</p>
             <div class="mt-3 flex flex-col gap-3 text-sm text-slate-600">
               <div
                 v-for="row in parityCalcRows"
@@ -81,12 +83,12 @@
                 </div>
               </div>
             </div>
-            <p class="mt-2 text-xs text-slate-500">偶校验：每组 XOR 的结果就是对应校验位。</p>
+            <p class="mt-2 text-xs text-slate-500">{{ t("common.evenParityNote") }}</p>
           </div>
 
           <HammingGrid
-            title="发送端编码"
-            :description="`${hammingLayout.totalLength} 位码字`"
+            :title="t('common.encoded')"
+            :description="t('hamming.encodedDesc', { length: hammingLayout.totalLength })"
             :positions="gridPositions"
             :labels="positionLabels"
             :parity-positions="hammingLayout.parityPositions"
@@ -97,8 +99,8 @@
 
         <div class="grid grid-cols-1 gap-6">
           <HammingGrid
-            title="接收端"
-            description="点击比特翻转，悬停查看覆盖关系。"
+            :title="t('common.received')"
+            :description="t('hamming.gridDesc')"
             :positions="gridPositions"
             :labels="positionLabels"
             :parity-positions="hammingLayout.parityPositions"
@@ -110,7 +112,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 text-sm text-slate-600">
-            <p class="text-sm font-semibold text-slate-600">伴随式计算</p>
+            <p class="text-sm font-semibold text-slate-600">{{ t("common.syndromeCalc") }}</p>
             <div class="mt-3 flex flex-col gap-3">
               <div
                 v-for="row in syndromeRows"
@@ -135,7 +137,7 @@
           </div>
 
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
-            <p class="text-sm font-semibold text-slate-600">解码与伴随式</p>
+            <p class="text-sm font-semibold text-slate-600">{{ t("common.syndromeDecode") }}</p>
             <div class="mt-3 grid gap-3 text-center text-xs text-slate-500 sm:grid-cols-2 lg:grid-cols-3">
               <div
                 v-for="row in syndromeSummary"
@@ -147,9 +149,9 @@
               </div>
             </div>
             <div class="mt-4 text-sm text-slate-600">
-              错误位置 ({{ syndromeLabel }})₂:
+              {{ t("hamming.syndromeLocation", { label: syndromeLabel }) }}
               <span class="font-mono text-slate-800">{{ syndromeBinary }}</span>
-              十进制 = <span class="font-semibold text-slate-800">{{ hammingAnalysis.syndrome }}</span>
+              {{ t("hamming.decimal", { value: hammingAnalysis.syndrome }) }}
             </div>
             <div
               class="mt-3 rounded border px-3 py-2 text-sm"
@@ -159,22 +161,24 @@
                   : 'border-amber-200 bg-amber-50 text-amber-700'
               "
             >
-              <span v-if="hammingAnalysis.syndrome === 0">✅ 伴随式为 0，数据无误。</span>
-              <span v-else>⚠️ 伴随式非 0，定位到第 {{ hammingAnalysis.syndrome }} 位。</span>
+              <span v-if="hammingAnalysis.syndrome === 0">{{ t("hamming.syndromeOk") }}</span>
+              <span v-else>
+                {{ t("hamming.syndromeWarn", { position: hammingAnalysis.syndrome }) }}
+              </span>
             </div>
 
             <div class="mt-4">
-              <p class="text-sm font-semibold text-slate-600">解码结果</p>
-              <BitDisplay title="输出" :bits="decodedStreamInfo" read-only />
+              <p class="text-sm font-semibold text-slate-600">{{ t("common.decodeResult") }}</p>
+              <BitDisplay :title="t('common.output')" :bits="decodedStreamInfo" read-only />
               <div class="mt-3 text-sm">
                 <span v-if="hammingErrorCount === 0" class="text-emerald-600 font-semibold">
-                  解码正确
+                  {{ t("hamming.decodeCorrect") }}
                 </span>
                 <span v-else-if="hammingErrorCount === 1" class="text-amber-600 font-semibold">
-                  修复成功
+                  {{ t("hamming.decodeFixed") }}
                 </span>
                 <span v-else class="text-rose-600 font-semibold">
-                  警告：你翻转了多个比特！标准汉明码只能纠正 1 位错误。当前修正结果可能是错误的（因为它会指向错误的单比特位置）。
+                  {{ t("hamming.decodeMulti") }}
                 </span>
               </div>
             </div>
@@ -192,9 +196,11 @@ import BitDisplay, { BitItem } from "./BitDisplay.vue";
 import HammingGrid from "./HammingGrid.vue";
 import { padBits, toBits } from "../utils/bits";
 import { buildHammingLayout, hammingDecode, hammingEncode } from "../utils/hamming";
+import { useI18n } from "../i18n";
 
 const hammingInput = ref("1011");
 const dataBitsPerBlock = ref(4);
+const { t } = useI18n();
 
 const normalizedBlockSize = computed(() => {
   const value = Number.isFinite(dataBitsPerBlock.value) ? dataBitsPerBlock.value : 4;

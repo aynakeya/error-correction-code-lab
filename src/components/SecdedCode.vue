@@ -5,17 +5,17 @@
         <div class="w-full md:w-2/3">
           <BitInput
             v-model="secdedInput"
-            :label="`输入比特（每 ${normalizedBlockSize} 位一组）`"
+            :label="t('secded.label', { size: normalizedBlockSize })"
           />
         </div>
         <div class="flex w-full flex-col gap-3 md:w-1/3">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
-            <p class="text-sm font-semibold text-slate-600">布局说明</p>
+            <p class="text-sm font-semibold text-slate-600">{{ t("secded.layoutTitle") }}</p>
             <p class="text-xs text-slate-500">
-              校验位位置：{{ parityPositionsText }}（偶校验） + 总体校验位 P0。
+              {{ t("secded.layoutDesc", { positions: parityPositionsText }) }}
             </p>
             <div class="mt-3 flex items-center gap-2 text-xs text-slate-500">
-              <span>每组信息位数</span>
+              <span>{{ t("secded.dataPerBlock") }}</span>
               <input
                 v-model.number="dataBitsPerBlock"
                 type="number"
@@ -23,7 +23,7 @@
                 max="32"
                 class="input input-bordered input-xs w-16"
               />
-              <span>码长 {{ secdedLayout.totalLength + 1 }}</span>
+              <span>{{ t("secded.codeLength", { length: secdedLayout.totalLength + 1 }) }}</span>
             </div>
           </div>
           <div
@@ -31,7 +31,7 @@
             class="rounded-2xl border border-base-200 bg-base-100 p-4"
           >
             <div class="flex items-center gap-3 text-sm text-slate-600">
-              <span class="font-semibold">分组选择</span>
+              <span class="font-semibold">{{ t("secded.blockSelect") }}</span>
               <div class="join">
                 <button
                   v-for="(_, index) in secdedEncodedBlocks"
@@ -52,7 +52,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 text-sm text-slate-600 leading-6">
-            <p class="font-semibold text-slate-700">校验位计算</p>
+            <p class="font-semibold text-slate-700">{{ t("common.parityCalc") }}</p>
             <div class="mt-3 flex flex-col gap-3 text-sm text-slate-600">
               <div
                 v-for="row in parityCalcRows"
@@ -105,12 +105,12 @@
                 </div>
               </div>
             </div>
-            <p class="mt-2 text-xs text-slate-500">偶校验：每组 XOR 的结果就是对应校验位。</p>
+            <p class="mt-2 text-xs text-slate-500">{{ t("common.evenParityNote") }}</p>
           </div>
 
           <HammingGrid
-            title="发送端编码"
-            :description="`${secdedLayout.totalLength + 1} 位 SEC-DED`"
+            :title="t('common.encoded')"
+            :description="t('secded.encodedDesc', { length: secdedLayout.totalLength + 1 })"
             :positions="gridPositions"
             :labels="positionLabels"
             :parity-positions="secdedLayout.parityPositions"
@@ -121,8 +121,8 @@
 
         <div class="grid grid-cols-1 gap-6">
           <HammingGrid
-            title="接收端"
-            description="点击比特翻转，悬停查看覆盖关系。"
+            :title="t('common.received')"
+            :description="t('hamming.gridDesc')"
             :positions="gridPositions"
             :labels="positionLabels"
             :parity-positions="secdedLayout.parityPositions"
@@ -135,7 +135,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 text-sm text-slate-600">
-            <p class="text-sm font-semibold text-slate-600">伴随式计算</p>
+            <p class="text-sm font-semibold text-slate-600">{{ t("common.syndromeCalc") }}</p>
             <div class="mt-3 flex flex-col gap-3">
               <div
                 v-for="row in syndromeRows"
@@ -175,19 +175,19 @@
           </div>
 
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 flex flex-col gap-4">
-            <p class="text-sm font-semibold text-slate-600">解码与伴随式</p>
+            <p class="text-sm font-semibold text-slate-600">{{ t("common.syndromeDecode") }}</p>
             <div class="grid grid-cols-2 gap-2 text-xs text-slate-500">
               <div class="rounded border border-base-200 bg-white/70 p-2 text-center">
-                总体校验
+                {{ t("secded.parityOverall") }}
                 <div
                   class="text-base font-semibold"
                   :class="secdedAnalysis.parityError ? 'text-rose-600' : 'text-emerald-600'"
                 >
-                  {{ secdedAnalysis.parityError ? "失败" : "通过" }}
+                  {{ secdedAnalysis.parityError ? t("common.fail") : t("common.pass") }}
                 </div>
               </div>
               <div class="rounded border border-base-200 bg-white/70 p-2 text-center">
-                伴随式
+                {{ t("secded.syndrome") }}
                 <div class="text-base font-semibold text-slate-700">
                   {{ secdedAnalysis.syndrome }}
                 </div>
@@ -204,9 +204,9 @@
               </div>
             </div>
             <div class="text-sm text-slate-600">
-              错误位置 ({{ syndromeLabel }})₂:
+              {{ t("secded.syndromeLocation", { label: syndromeLabel }) }}
               <span class="font-mono text-slate-800">{{ syndromeBinary }}</span>
-              十进制 = <span class="font-semibold text-slate-800">{{ secdedAnalysis.syndrome }}</span>
+              {{ t("hamming.decimal", { value: secdedAnalysis.syndrome }) }}
             </div>
             <div
               class="rounded border px-3 py-2 text-sm"
@@ -221,25 +221,25 @@
               "
             >
               <span v-if="secdedAnalysis.syndrome === 0 && !secdedAnalysis.parityError">
-                ✅ 伴随式为 0，数据无误。
+                {{ t("secded.syndromeOk") }}
               </span>
               <span v-else-if="secdedAnalysis.syndrome !== 0 && secdedAnalysis.parityError">
-                ✅ 检测到单比特错误，已定位到第 {{ secdedAnalysis.syndrome }} 位。
+                {{ t("secded.syndromeSingle", { position: secdedAnalysis.syndrome }) }}
               </span>
               <span v-else-if="secdedAnalysis.syndrome === 0 && secdedAnalysis.parityError">
-                ⚠️ 总体校验错误，疑似 P0 位出错。
+                {{ t("secded.syndromeOverall") }}
               </span>
               <span v-else>
-                ❌ 检测到双比特错误，无法纠正。
+                {{ t("secded.syndromeDouble") }}
               </span>
             </div>
             <div class="text-xs text-slate-500">
-              状态：
+              {{ t("common.status") }}
               <span class="font-semibold" :class="secdedAnalysis.statusClass">
-                {{ secdedAnalysis.status }}
+                {{ t(secdedAnalysis.statusKey, secdedAnalysis.statusParams) }}
               </span>
             </div>
-            <BitDisplay title="解码结果" :bits="secdedDecodedInfo" read-only />
+            <BitDisplay :title="t('common.decodeResult')" :bits="secdedDecodedInfo" read-only />
           </div>
         </div>
       </div>
@@ -254,9 +254,11 @@ import BitDisplay, { BitItem } from "./BitDisplay.vue";
 import HammingGrid from "./HammingGrid.vue";
 import { padBits, toBits } from "../utils/bits";
 import { buildHammingLayout, secdedDecode, secdedEncode } from "../utils/hamming";
+import { useI18n } from "../i18n";
 
 const secdedInput = ref("1011");
 const dataBitsPerBlock = ref(4);
+const { t } = useI18n();
 
 const normalizedBlockSize = computed(() => {
   const value = Number.isFinite(dataBitsPerBlock.value) ? dataBitsPerBlock.value : 4;
@@ -353,7 +355,8 @@ const secdedAnalysis = computed(() => {
   return {
     syndrome: decoded.syndrome,
     parityError: decoded.parityError,
-    status: decoded.status,
+    statusKey: decoded.statusKey,
+    statusParams: decoded.statusParams,
     statusClass: decoded.statusClass,
   };
 });

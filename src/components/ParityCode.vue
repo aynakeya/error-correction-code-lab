@@ -3,27 +3,27 @@
     <div class="card-body gap-6">
       <div class="flex flex-col gap-4 md:flex-row md:items-end">
         <div class="w-full md:w-2/3">
-          <BitInput v-model="parityInput" label="输入比特" />
+          <BitInput v-model="parityInput" :label="t('parity.label')" />
         </div>
         <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
-          <p class="text-sm font-semibold text-slate-600">奇偶校验规则</p>
-          <p class="text-xs text-slate-500">偶校验位追加到末尾。</p>
+          <p class="text-sm font-semibold text-slate-600">{{ t("parity.ruleTitle") }}</p>
+          <p class="text-xs text-slate-500">{{ t("parity.ruleDesc") }}</p>
         </div>
       </div>
 
       <BitDisplay
-        title="奇偶校验计算"
+        :title="t('parity.calcTitle')"
         :bits="parityCalcInfo"
-        description="数据位 + 计算出的校验位"
+        :description="t('parity.calcDesc')"
         read-only
       />
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
         <div class="relative">
           <BitDisplay
-            title="发送端编码"
+            :title="t('common.encoded')"
             :bits="parityEncodedInfo"
-            description="数据位 + 校验位"
+            :description="t('parity.encodedDesc')"
             show-index
             :index-offset="1"
             read-only
@@ -32,9 +32,9 @@
 
         <div class="relative">
           <BitDisplay
-            title="接收端"
+            :title="t('common.received')"
             :bits="parityReceivedInfo"
-            description="点击任意比特翻转。"
+            :description="t('parity.receivedDesc')"
             :highlight-indices="parityErrorIndices"
             show-index
             :index-offset="1"
@@ -43,18 +43,18 @@
         </div>
 
         <div class="rounded-2xl border border-base-200 bg-base-100 p-4 flex flex-col gap-4">
-          <p class="text-sm font-semibold text-slate-600">奇偶校验结果</p>
+          <p class="text-sm font-semibold text-slate-600">{{ t("parity.resultTitle") }}</p>
           <div class="text-sm text-slate-600">
-            1 的数量：<span class="font-semibold">{{ parityReceivedOnes }}</span>
+            {{ t("parity.onesCount", { count: parityReceivedOnes }) }}
           </div>
           <div class="text-sm">
-            状态：
+            {{ t("common.status") }}
             <span class="font-semibold" :class="parityOk ? 'text-emerald-600' : 'text-rose-600'">
-              {{ parityOk ? "通过（未检测到错误）" : "失败（检测到错误）" }}
+              {{ parityOk ? t("parity.ok") : t("parity.fail") }}
             </span>
           </div>
           <div v-if="parityErrorIndices.length && parityOk" class="text-xs text-amber-600">
-            偶数个位翻转未被奇偶校验检测到。
+            {{ t("parity.notice") }}
           </div>
         </div>
       </div>
@@ -67,8 +67,10 @@ import { computed, ref, watch } from "vue";
 import BitInput from "./BitInput.vue";
 import BitDisplay, { BitItem } from "./BitDisplay.vue";
 import { toBits } from "../utils/bits";
+import { useI18n } from "../i18n";
 
 const parityInput = ref("1101001");
+const { t } = useI18n();
 
 const parityInputBits = computed(() => toBits(parityInput.value));
 

@@ -1,13 +1,15 @@
 <template>
   <div v-if="stepIndex === 0" class="text-slate-500 italic">
-    从第 1 步开始显示逐步度量计算。
+    {{ t("conv.viterbiHint") }}
   </div>
   <div v-else class="w-full overflow-x-auto">
     <table class="w-full text-sm text-left text-slate-600 border-collapse">
       <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-base-200">
         <tr>
-          <th class="px-4 py-3 border-r border-base-200">目标状态 (t={{ stepIndex }})</th>
-          <th class="px-4 py-3">候选路径分析</th>
+          <th class="px-4 py-3 border-r border-base-200">
+            {{ t("conv.viterbi.targetState", { t: stepIndex }) }}
+          </th>
+          <th class="px-4 py-3">{{ t("conv.viterbi.candidates") }}</th>
         </tr>
       </thead>
       <tbody>
@@ -18,13 +20,15 @@
         >
           <td class="px-4 py-4 border-r border-base-200 font-medium align-top w-48">
             <div class="flex items-center gap-2 mb-1">
-              <span class="text-blue-600 font-bold">状态 {{ group.targetState }}</span>
+              <span class="text-blue-600 font-bold">
+                {{ t("conv.viterbi.state", { state: group.targetState }) }}
+              </span>
               <span class="text-xs text-slate-400 font-mono">
                 ({{ group.targetState.toString(2).padStart(config.v, "0") }})
               </span>
             </div>
             <div class="text-xs text-slate-500">
-              最小度量：
+              {{ t("conv.viterbi.minMetric") }}
               <span class="text-emerald-600 font-bold">{{ metricByState[group.targetState] }}</span>
             </div>
           </td>
@@ -38,34 +42,34 @@
               >
                 <div class="flex items-center gap-3">
                   <div class="flex flex-col text-xs">
-                    <span class="text-slate-400">来自状态</span>
+                    <span class="text-slate-400">{{ t("conv.viterbi.fromState") }}</span>
                     <span class="font-mono">{{ cand.fromState }}</span>
                   </div>
                   <span class="text-slate-400">→</span>
                   <div class="flex flex-col text-xs">
-                    <span class="text-slate-400">期望输出</span>
+                    <span class="text-slate-400">{{ t("conv.viterbi.expected") }}</span>
                     <span class="font-mono text-amber-600">{{ fmt(cand.expectedOutput) }}</span>
                   </div>
-                  <span class="text-slate-400 text-xs">对比</span>
+                  <span class="text-slate-400 text-xs">{{ t("conv.viterbi.compare") }}</span>
                   <div class="flex flex-col text-xs">
-                    <span class="text-slate-400">接收</span>
+                    <span class="text-slate-400">{{ t("conv.viterbi.received") }}</span>
                     <span class="font-mono text-slate-700">{{ fmt(receivedBits) }}</span>
                   </div>
                 </div>
 
                 <div class="flex items-center gap-2 font-mono text-xs">
                   <div class="text-center">
-                    <div class="text-slate-400 text-[10px]">前一度量</div>
+                    <div class="text-slate-400 text-[10px]">{{ t("conv.viterbi.prevMetric") }}</div>
                     <div>{{ cand.prevMetric }}</div>
                   </div>
                   <span class="text-slate-400">+</span>
                   <div class="text-center">
-                    <div class="text-slate-400 text-[10px]">分支</div>
+                    <div class="text-slate-400 text-[10px]">{{ t("conv.viterbi.branch") }}</div>
                     <div class="text-amber-600">{{ cand.branchMetric }}</div>
                   </div>
                   <span class="text-slate-400">=</span>
                   <div class="text-center">
-                    <div class="text-slate-400 text-[10px]">总计</div>
+                    <div class="text-slate-400 text-[10px]">{{ t("conv.viterbi.total") }}</div>
                     <div :class="cand.isSurvivor ? 'text-emerald-600 font-bold' : 'text-slate-400'">
                       {{ cand.totalMetric }}
                     </div>
@@ -77,10 +81,10 @@
                     v-if="cand.isSurvivor"
                     class="flex items-center justify-end gap-1 text-emerald-600 text-xs font-bold"
                   >
-                    ✓ 选中
+                    {{ t("conv.viterbi.chosen") }}
                   </span>
                   <span v-else class="flex items-center justify-end gap-1 text-slate-400 text-xs">
-                    ✕ 淘汰
+                    {{ t("conv.viterbi.eliminated") }}
                   </span>
                 </div>
               </div>
@@ -96,6 +100,7 @@
 import { computed } from "vue";
 import type { EncoderConfig, TrellisEdge, TrellisNode } from "../../utils/convcode";
 import { generateTrellisStructure, hammingDistance } from "../../utils/convcode";
+import { useI18n } from "../../i18n";
 
 const props = defineProps<{
   config: EncoderConfig;
@@ -104,10 +109,11 @@ const props = defineProps<{
   currentLayer: TrellisNode[];
   receivedBits: number[];
 }>();
+const { t } = useI18n();
 
 const transitions = computed<TrellisEdge[][]>(() => generateTrellisStructure(props.config));
 
-const fmt = (arr) => arr.join("");
+const fmt = (arr: number[]) => arr.join("");
 
 const metricByState = computed<Record<number, number>>(() => {
   const map: Record<number, number> = {};

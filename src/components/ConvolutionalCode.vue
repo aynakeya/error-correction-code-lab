@@ -4,47 +4,47 @@
       <div class="grid gap-6 lg:grid-cols-3">
         <div class="lg:col-span-1 flex flex-col gap-6">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
-            <p class="text-sm font-semibold text-slate-600">编码器设置</p>
+            <p class="text-sm font-semibold text-slate-600">{{ t("conv.settings") }}</p>
             <div class="mt-3 flex flex-col gap-4">
               <label class="form-control">
                 <div class="label">
-                    <span class="label-text">输入比特</span>
+                    <span class="label-text">{{ t("conv.inputBits") }}</span>
                 </div>
                 <input v-model="inputDataStr" class="input input-bordered" placeholder="11011" />
               </label>
               <div class="grid grid-cols-3 gap-3">
                 <label class="form-control">
                   <div class="label">
-                    <span class="label-text">n（输出数）</span>
+                    <span class="label-text">{{ t("conv.n") }}</span>
                   </div>
                   <input v-model.number="convN" type="number" min="1" class="input input-bordered" />
                 </label>
                 <label class="form-control">
                   <div class="label">
-                    <span class="label-text">k（输入数）</span>
+                    <span class="label-text">{{ t("conv.k") }}</span>
                   </div>
                   <input v-model.number="convK" type="number" min="1" class="input input-bordered" />
                 </label>
                 <label class="form-control">
                   <div class="label">
-                    <span class="label-text">v（存储深度）</span>
+                    <span class="label-text">{{ t("conv.v") }}</span>
                   </div>
                   <input v-model.number="convV" type="number" min="1" class="input input-bordered" />
                 </label>
               </div>
               <p v-if="convK !== 1" class="text-xs text-amber-600">
-                编码器状态与网格图当前只支持 k = 1，其他值会被忽略。
+                {{ t("conv.kNotice") }}
               </p>
               <div>
                 <p class="text-xs text-slate-500">
-                  生成多项式（长度 = v + 1），最左位表示输入抽头。
+                  {{ t("conv.polyNotice") }}
                 </p>
                 <div class="mt-2 overflow-x-auto">
                   <table class="table table-sm">
                     <thead>
                       <tr>
-                          <th>输出</th>
-                          <th>抽头二进制</th>
+                          <th>{{ t("conv.outputCol") }}</th>
+                          <th>{{ t("conv.tapsCol") }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -67,16 +67,18 @@
 
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
             <div class="flex items-center justify-between">
-              <p class="text-sm font-semibold text-slate-600">仿真控制</p>
-              <span class="text-xs text-slate-500 font-mono">步数 {{ currentStep }} / {{ totalSteps }}</span>
+              <p class="text-sm font-semibold text-slate-600">{{ t("conv.simControl") }}</p>
+              <span class="text-xs text-slate-500 font-mono">
+                {{ t("conv.steps", { current: currentStep, total: totalSteps }) }}
+              </span>
             </div>
             <div class="mt-3 flex flex-wrap gap-2">
-              <button class="btn btn-sm" @click="resetSimulation">重置</button>
+              <button class="btn btn-sm" @click="resetSimulation">{{ t("conv.reset") }}</button>
               <button class="btn btn-sm btn-primary" @click="nextStep" :disabled="currentStep >= totalSteps">
-                下一步
+                {{ t("conv.next") }}
               </button>
               <button class="btn btn-sm btn-secondary" @click="toggleAuto" :disabled="currentStep >= totalSteps">
-                {{ isAutoPlaying ? "暂停" : "自动播放" }}
+                {{ isAutoPlaying ? t("conv.pause") : t("conv.auto") }}
               </button>
             </div>
           </div>
@@ -85,8 +87,8 @@
 
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
             <div class="flex justify-between text-xs text-slate-500 uppercase">
-              <span>输入序列</span>
-              <span>编码序列（发送）</span>
+              <span>{{ t("conv.inputSeq") }}</span>
+              <span>{{ t("conv.encodedSeq") }}</span>
             </div>
             <div class="mt-2 flex gap-4 items-center">
               <div class="flex-1 bg-slate-50 h-8 rounded flex items-center px-2 overflow-hidden font-mono text-sm border border-base-200">
@@ -116,10 +118,10 @@
 
         <div class="lg:col-span-2 flex flex-col gap-6">
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
-            <p class="text-sm font-semibold text-slate-600">编码输出（点击翻转）</p>
+            <p class="text-sm font-semibold text-slate-600">{{ t("conv.outputTitle") }}</p>
             <div class="mt-3 flex flex-col gap-3">
               <div v-for="(stepBits, step) in encodedSteps" :key="`conv-step-${step}`">
-                <p class="text-xs text-slate-500">步 {{ step + 1 }}</p>
+                <p class="text-xs text-slate-500">{{ t("conv.stepLabel", { step: step + 1 }) }}</p>
                 <div class="flex flex-wrap gap-2">
                   <button
                     v-for="(bit, index) in stepBits"
@@ -133,23 +135,26 @@
                 </div>
               </div>
             </div>
-            <p class="mt-3 text-xs text-slate-500">接收序列：{{ receivedBits.join("") }}</p>
+            <p class="mt-3 text-xs text-slate-500">
+              {{ t("conv.receivedSeq", { seq: receivedBits.join("") }) }}
+            </p>
           </div>
 
           <div class="rounded-2xl border border-base-200 bg-base-100 p-4 flex flex-col min-h-[500px]">
             <div class="flex justify-between items-center mb-4">
-              <div class="text-sm font-semibold text-emerald-600">维特比译码（网格）</div>
+              <div class="text-sm font-semibold text-emerald-600">{{ t("conv.viterbiTitle") }}</div>
               <div class="text-xs text-slate-500">
-                接收：<span class="font-mono text-slate-700">{{ receivedBits.join("") }}</span>
+                {{ t("conv.receivedLabel") }}
+                <span class="font-mono text-slate-700">{{ receivedBits.join("") }}</span>
               </div>
             </div>
             <TrellisViz :config="config" :viterbi-data="viterbiResult" :current-step="currentStep" />
             <div class="border-t border-base-200 pt-6 mt-4">
               <div class="text-sm font-semibold text-amber-600 mb-3">
-                步 {{ currentStep }} 路径度量与选择
+                {{ t("conv.stepMetric", { step: currentStep }) }}
               </div>
               <div v-if="currentStep === 0" class="text-slate-500 italic">
-                进入第 1 步后显示维特比路径计算。
+                {{ t("conv.stepHint") }}
               </div>
               <ViterbiStepDetails
                 v-else
@@ -161,7 +166,7 @@
               />
             </div>
             <div class="mt-6 pt-4 border-t border-base-200">
-              <h4 class="text-sm font-bold text-slate-500 mb-2">解码输出（幸存路径）</h4>
+              <h4 class="text-sm font-bold text-slate-500 mb-2">{{ t("conv.decodedPath") }}</h4>
               <div class="font-mono text-lg tracking-widest text-slate-800">
                 <span
                   v-for="(bit, i) in viterbiResult.decodedBits"
@@ -192,12 +197,14 @@ import {
 import EncoderState from "./convcode/EncoderState.vue";
 import TrellisViz from "./convcode/TrellisViz.vue";
 import ViterbiStepDetails from "./convcode/ViterbiStepDetails.vue";
+import { useI18n } from "../i18n";
 
 const inputDataStr = ref("11011");
 const convN = ref<number>(2);
 const convK = ref<number>(1);
 const convV = ref<number>(2);
 const generatorStrings = ref<string[]>(["111", "101"]);
+const { t } = useI18n();
 
 const normalizeGenerators = () => {
   const n = Math.max(1, Number(convN.value) || 1);

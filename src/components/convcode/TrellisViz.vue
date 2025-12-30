@@ -1,7 +1,7 @@
 <template>
   <div class="w-full bg-base-100 rounded-lg border border-base-200 p-4 shadow-sm overflow-x-auto relative">
     <h3 class="text-slate-600 text-sm font-bold mb-2 uppercase tracking-wider sticky left-0">
-      维特比网格译码
+      {{ t("conv.trellisTitle") }}
     </h3>
     <svg :width="width" :height="height">
       <g v-for="(layer, stepIndex) in layers.slice(0, layers.length - 1)" :key="`step-${stepIndex}`">
@@ -64,12 +64,14 @@
 import { computed } from "vue";
 import type { EncoderConfig, TrellisEdge, TrellisNode, ViterbiResult } from "../../utils/convcode";
 import { generateTrellisStructure } from "../../utils/convcode";
+import { useI18n } from "../../i18n";
 
 const props = defineProps<{
   config: EncoderConfig;
   viterbiData: ViterbiResult | null;
   currentStep: number;
 }>();
+const { t } = useI18n();
 
 const transitions = computed<TrellisEdge[][]>(() => generateTrellisStructure(props.config));
 

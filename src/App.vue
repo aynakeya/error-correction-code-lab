@@ -2,12 +2,30 @@
   <div class="min-h-screen px-4 py-8 md:px-10">
     <header class="mx-auto w-full md:w-3/4 max-w-none">
       <div class="flex flex-col gap-4 rounded-3xl border border-base-200 bg-white/80 p-6 shadow-lg backdrop-blur">
-        <p class="text-sm uppercase tracking-[0.3em] text-emerald-500">FEC 实验室</p>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="text-sm uppercase tracking-[0.3em] text-emerald-500">{{ t("app.badge") }}</p>
+          <div class="join">
+            <button
+              class="btn btn-xs join-item"
+              :class="locale === 'zh' ? 'btn-primary' : 'btn-ghost'"
+              @click="setLocale('zh')"
+            >
+              {{ t("app.lang.zh") }}
+            </button>
+            <button
+              class="btn btn-xs join-item"
+              :class="locale === 'en' ? 'btn-primary' : 'btn-ghost'"
+              @click="setLocale('en')"
+            >
+              {{ t("app.lang.en") }}
+            </button>
+          </div>
+        </div>
         <h1 class="text-3xl font-bold text-slate-900 md:text-4xl">
-          前向纠错交互演示
+          {{ t("app.title") }}
         </h1>
         <p class="max-w-3xl text-slate-600">
-          通过翻转比特交互式理解编码与解码过程，每个标签页都可以逐步调整与观察。
+          {{ t("app.description") }}
         </p>
       </div>
     </header>
@@ -19,35 +37,35 @@
           :class="{ 'tab-active': activeTab === 'repetition' }"
           @click="activeTab = 'repetition'"
         >
-          重复码
+          {{ t("app.tabs.repetition") }}
         </button>
         <button
           class="tab"
           :class="{ 'tab-active': activeTab === 'parity' }"
           @click="activeTab = 'parity'"
         >
-          奇偶校验
+          {{ t("app.tabs.parity") }}
         </button>
         <button
           class="tab"
           :class="{ 'tab-active': activeTab === 'hamming' }"
           @click="activeTab = 'hamming'"
         >
-          汉明码 (7,4)
+          {{ t("app.tabs.hamming") }}
         </button>
         <button
           class="tab"
           :class="{ 'tab-active': activeTab === 'secded' }"
           @click="activeTab = 'secded'"
         >
-          SEC-DED (8,4)
+          {{ t("app.tabs.secded") }}
         </button>
         <button
           class="tab"
           :class="{ 'tab-active': activeTab === 'conv' }"
           @click="activeTab = 'conv'"
         >
-          卷积码
+          {{ t("app.tabs.conv") }}
         </button>
       </div>
 
@@ -67,6 +85,8 @@ import ParityCode from "./components/ParityCode.vue";
 import HammingCode from "./components/HammingCode.vue";
 import SecdedCode from "./components/SecdedCode.vue";
 import ConvolutionalCode from "./components/ConvolutionalCode.vue";
+import { useI18n } from "./i18n";
 
 const activeTab = ref("repetition");
+const { locale, setLocale, t } = useI18n();
 </script>

@@ -1,8 +1,8 @@
 <template>
   <div class="rounded-2xl border border-base-200 bg-base-100 p-4">
     <div class="flex items-center justify-between gap-3">
-      <p class="text-sm font-semibold text-slate-600">{{ label }}</p>
-      <span class="text-xs text-slate-400">点击比特切换</span>
+      <p class="text-sm font-semibold text-slate-600">{{ labelText }}</p>
+      <span class="text-xs text-slate-400">{{ t("bit.clickToggle") }}</span>
     </div>
     <div class="mt-3 flex flex-wrap gap-2">
       <button
@@ -17,7 +17,7 @@
       <button
         class="bit-chip border-dashed text-slate-500 hover:border-slate-400"
         @click="addBit(0)"
-        title="新增比特"
+        :title="t('bit.add')"
       >
         +
       </button>
@@ -25,11 +25,13 @@
         class="bit-chip border-dashed text-slate-500 hover:border-rose-400"
         @click="removeBit"
         :disabled="bits.length === 0"
-        title="删除比特"
+        :title="t('bit.remove')"
       >
         -
       </button>
-      <span v-if="bits.length === 0" class="text-xs text-slate-400">请先添加比特。</span>
+      <span v-if="bits.length === 0" class="text-xs text-slate-400">
+        {{ t("bit.addHint") }}
+      </span>
     </div>
   </div>
 </template>
@@ -37,18 +39,22 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { bitsToString, toBits } from "../utils/bits";
+import { useI18n } from "../i18n";
 
 const props = withDefaults(
   defineProps<{
     modelValue: string;
     label?: string;
   }>(),
-  { label: "输入比特" }
+  { label: undefined }
 );
 
 const emit = defineEmits<{ (event: "update:modelValue", value: string): void }>();
 
 const bits = computed(() => toBits(props.modelValue));
+const { t } = useI18n();
+
+const labelText = computed(() => props.label ?? t("bit.input"));
 
 const update = (nextBits: number[]) => {
   emit("update:modelValue", bitsToString(nextBits));
