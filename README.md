@@ -62,6 +62,14 @@ pnpm preview
 - TypeScript
 - Tailwind CSS + DaisyUI
 
+## Thanks
+
+Thanks following project for initial inspiration
+
+- [https://github.com/harryli0088/hamming-code](https://github.com/harryli0088/hamming-code)
+- [*But what are Hamming codes? The origin of error correction* by 3Blue1Brown](https://www.youtube.com/watch?v=X8jsijhllIA)
+- [*Hamming codes part 2: The one-line implementation* by 3Blue1Brown](https://www.youtube.com/watch?v=b3NxrZOu_CE)
+
 ## License
 
 GPL-3.0
