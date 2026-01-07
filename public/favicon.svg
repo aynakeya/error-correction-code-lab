@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Error correction code lab">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fef3c7" />
+      <stop offset="1" stop-color="#ccfbf1" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#bg)" stroke="#0f172a" stroke-width="2" />
+  <g fill="#0f172a">
+    <rect x="16" y="16" width="10" height="10" rx="2" />
+    <rect x="27" y="16" width="10" height="10" rx="2" />
+    <rect x="38" y="16" width="10" height="10" rx="2" />
+    <rect x="16" y="27" width="10" height="10" rx="2" />
+    <rect x="27" y="27" width="10" height="10" rx="2" />
+    <rect x="38" y="27" width="10" height="10" rx="2" />
+    <rect x="16" y="38" width="10" height="10" rx="2" />
+    <rect x="27" y="38" width="10" height="10" rx="2" />
+  </g>
+  <rect x="38" y="38" width="10" height="10" rx="2" fill="#f97316" stroke="#0f172a" stroke-width="1.5" />
+</svg>
